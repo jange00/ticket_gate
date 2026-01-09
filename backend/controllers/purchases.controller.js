@@ -73,7 +73,10 @@ const createPurchase = async (req, res, next) => {
     const serviceCharge = 0; // Calculate service charge if needed
     const totalAmount = subtotal + tax + serviceCharge;
 
-    // Create purchase
+    // IMPORTANT: Create purchase record ONLY (status: pending)
+    // DO NOT create tickets here - tickets are created ONLY after payment confirmation in webhook
+    // DO NOT deduct ticket quantities here - quantities are deducted ONLY in webhook after payment
+    // This ensures users cannot get tickets without paying
     const purchase = await Purchase.create({
       userId,
       eventId,
@@ -86,7 +89,7 @@ const createPurchase = async (req, res, next) => {
     });
 
     // Generate payment URL
-    const paymentData = generateEsewaPaymentUrl({
+    const paymentRequestData = {
       amount: subtotal,
       taxAmount: tax,
       serviceCharge: serviceCharge,
@@ -95,6 +98,28 @@ const createPurchase = async (req, res, next) => {
       productName: `Tickets for ${event.title}`,
       successUrl: `${config.FRONTEND_URL}/purchase/success?transactionId=${purchase.transactionId}`,
       failureUrl: `${config.FRONTEND_URL}/purchase/failure?transactionId=${purchase.transactionId}`
+    };
+
+    logger.info('=== Purchase Payment URL Generation ===');
+    logger.info('Purchase details:', {
+      purchaseId: purchase._id,
+      transactionId: purchase.transactionId,
+      totalAmount: purchase.totalAmount,
+      subtotal: purchase.subtotal,
+      tax: purchase.tax,
+      serviceCharge: purchase.serviceCharge,
+      eventId: purchase.eventId,
+      userId: purchase.userId
+    });
+    logger.info('Payment request data:', JSON.stringify(paymentRequestData, null, 2));
+    logger.info('Frontend URL from config:', config.FRONTEND_URL);
+
+    const paymentData = generateEsewaPaymentUrl(paymentRequestData);
+
+    logger.info('Payment URL generated successfully:', {
+      transactionId: paymentData.transactionId,
+      paymentUrlLength: paymentData.paymentUrl ? paymentData.paymentUrl.length : 0,
+      hasSignature: !!paymentData.signature
     });
 
     // Update purchase with payment URL

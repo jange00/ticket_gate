@@ -28,8 +28,8 @@ module.exports = {
   ESEWA_SECRET_KEY: process.env.ESEWA_SECRET_KEY || '8gBm/:&EnhH.1/q',
   ESEWA_CLIENT_ID: process.env.ESEWA_CLIENT_ID || 'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R',
   ESEWA_CLIENT_SECRET: process.env.ESEWA_CLIENT_SECRET || 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==',
-  ESEWA_BASE_URL: process.env.ESEWA_BASE_URL || 'https://uat.esewa.com.np',
-  ESEWA_API_URL: process.env.ESEWA_API_URL || 'https://uat.esewa.com.np/epay/main',
+  ESEWA_BASE_URL: process.env.ESEWA_BASE_URL || 'https://rc-epay.esewa.com.np',
+  ESEWA_API_URL: process.env.ESEWA_API_URL || 'https://rc-epay.esewa.com.np/api/epay/main/v2/form',
   
   // Email
   EMAIL_HOST: process.env.EMAIL_HOST || 'smtp.gmail.com',

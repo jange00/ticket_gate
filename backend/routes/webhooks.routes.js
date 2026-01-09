@@ -56,6 +56,7 @@ router.post('/esewa', async (req, res, next) => {
         });
       }
 
+      // Payment confirmed - update purchase status
       purchase.status = PURCHASE_STATUS.PAID;
       purchase.paymentId = verification.refId;
       purchase.paymentReferenceId = verification.refId;
@@ -63,7 +64,9 @@ router.post('/esewa', async (req, res, next) => {
       purchase.esewaResponse = paymentData;
       await purchase.save();
 
-      // Create individual Ticket documents and update TicketType quantities
+      // IMPORTANT: Tickets are created HERE (after payment confirmation) and NOT in createPurchase
+      // This ensures tickets are only created when payment is successful
+      // Deduct ticket quantities and create individual Ticket documents
       const createdTickets = [];
       for (const ticketItem of purchase.tickets) {
         const ticketType = await TicketType.findById(ticketItem.ticketTypeId);

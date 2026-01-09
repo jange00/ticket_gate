@@ -36,10 +36,10 @@ const eventSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    country: {
-      type: String,
-      trim: true
-    },
+    // country: {
+    //   type: String,
+    //   trim: true
+    // },
     coordinates: {
       latitude: Number,
       longitude: Number

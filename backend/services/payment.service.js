@@ -9,6 +9,9 @@ const { generateTransactionId } = require('../utils/helpers');
  */
 const generateEsewaPaymentUrl = (paymentData) => {
   try {
+    logger.info('=== eSewa Payment URL Generation Started ===');
+    logger.info('Input paymentData:', JSON.stringify(paymentData, null, 2));
+
     const {
       amount,
       taxAmount = 0,
@@ -27,48 +30,112 @@ const generateEsewaPaymentUrl = (paymentData) => {
     // Calculate total
     const calculatedTotal = amount + taxAmount + serviceCharge + deliveryCharge;
     
+    logger.info('Calculated values:', {
+      amount,
+      taxAmount,
+      serviceCharge,
+      deliveryCharge,
+      calculatedTotal,
+      totalAmount: totalAmount || calculatedTotal
+    });
+    
     // Build payment parameters
+    // CRITICAL: su and fu URLs MUST be URL-encoded before adding to params
+    // URLSearchParams.append() encodes values, but eSewa requires explicit encoding
+    const finalSuccessUrl = successUrl || `${esewaConfig.baseUrl}/success`;
+    const finalFailureUrl = failureUrl || `${esewaConfig.baseUrl}/failure`;
+    
     const paymentParams = {
-      amt: totalAmount || calculatedTotal,
-      psc: productServiceCharge || serviceCharge,
-      pdc: productDeliveryCharge || deliveryCharge,
-      tAmt: totalAmount || calculatedTotal,
+      amt: (totalAmount || calculatedTotal).toString(), // Convert to string
+      psc: (productServiceCharge || serviceCharge).toString(),
+      pdc: (productDeliveryCharge || deliveryCharge).toString(),
+      txAmt: '0', // Tax amount (required by eSewa, usually 0)
+      tAmt: (totalAmount || calculatedTotal).toString(), // Total amount
       pid: productId || generateTransactionId(),
       scd: esewaConfig.merchantId,
-      su: successUrl || `${esewaConfig.baseUrl}/success`,
-      fu: failureUrl || `${esewaConfig.baseUrl}/failure`
+      su: encodeURIComponent(finalSuccessUrl), // CRITICAL: Must be URL-encoded!
+      fu: encodeURIComponent(finalFailureUrl)  // CRITICAL: Must be URL-encoded!
     };
 
+    logger.info('Payment parameters built:', JSON.stringify(paymentParams, null, 2));
+    logger.info('eSewa configuration:', {
+      merchantId: esewaConfig.merchantId,
+      apiUrl: esewaConfig.apiUrl,
+      baseUrl: esewaConfig.baseUrl,
+      secretKeyLength: esewaConfig.secretKey ? esewaConfig.secretKey.length : 0,
+      secretKeySet: !!esewaConfig.secretKey
+    });
+
     // Generate signature
-    const message = Object.keys(paymentParams)
-      .sort()
+    const sortedKeys = Object.keys(paymentParams).sort();
+    const message = sortedKeys
       .map(key => `${key}=${paymentParams[key]}`)
       .join(',');
+    
+    logger.info('Signature generation:', {
+      sortedKeys,
+      message,
+      secretKey: esewaConfig.secretKey ? `${esewaConfig.secretKey.substring(0, 5)}...` : 'NOT SET'
+    });
     
     const signature = crypto
       .createHmac('sha256', esewaConfig.secretKey)
       .update(message)
       .digest('base64');
 
-    // Build payment URL
-    const paymentUrl = new URL(esewaConfig.apiUrl);
-    Object.keys(paymentParams).forEach(key => {
-      paymentUrl.searchParams.append(key, paymentParams[key]);
+    logger.info('Signature generated:', {
+      signature,
+      signatureLength: signature.length
     });
-    paymentUrl.searchParams.append('signature', signature);
 
-    logger.info('eSewa payment URL generated', {
+    // Build payment URL manually to avoid double-encoding
+    // URLSearchParams would double-encode pre-encoded URLs
+    // Build query string manually: keys don't need encoding, values do (except su/fu which are pre-encoded)
+    const queryParts = [];
+    
+    // Add all parameters
+    Object.keys(paymentParams).forEach(key => {
+      const value = paymentParams[key];
+      // Keys are safe strings, values need encoding (but su/fu are already encoded)
+      queryParts.push(`${key}=${value}`); // su and fu are already encoded, others are safe strings
+    });
+    queryParts.push(`signature=${encodeURIComponent(signature)}`); // Encode signature (base64 may have special chars)
+    
+    // Build final URL
+    const queryString = queryParts.join('&');
+    const paymentUrl = `${esewaConfig.apiUrl}?${queryString}`;
+
+    logger.info('=== eSewa Payment URL Generated Successfully ===');
+    logger.info('Final payment URL:', paymentUrl);
+    logger.info('Payment URL breakdown:', {
+      baseUrl: esewaConfig.apiUrl,
+      queryString: queryString,
+      parameters: paymentParams,
+      signature: signature,
+      fullUrl: paymentUrl
+    });
+    logger.info('Summary:', {
       productId: paymentParams.pid,
-      amount: paymentParams.tAmt
+      amount: paymentParams.tAmt,
+      merchantId: paymentParams.scd,
+      endpoint: esewaConfig.apiUrl,
+      successUrl: paymentParams.su,
+      failureUrl: paymentParams.fu
     });
 
     return {
-      paymentUrl: paymentUrl.toString(),
+      paymentUrl: paymentUrl,
       transactionId: paymentParams.pid,
       signature
     };
   } catch (error) {
-    logger.error('eSewa payment URL generation failed:', error);
+    logger.error('=== eSewa Payment URL Generation FAILED ===');
+    logger.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    logger.error('Error occurred with paymentData:', JSON.stringify(paymentData, null, 2));
     throw error;
   }
 };
@@ -165,6 +232,7 @@ module.exports = {
   verifyEsewaPayment,
   processRefund
 };
+
 
 
 

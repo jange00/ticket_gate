@@ -252,6 +252,11 @@ ISC
 For issues or questions, please contact the development team.
 
 
+<!-- Test credentials
+For testing, use these eSewa credentials:
+eSewa ID: 9806800001 (or 2/3/4/5)
+Password: Nepal@123
+MPIN: 1122 -->
 
 
 
