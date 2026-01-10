@@ -25,12 +25,21 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [lockoutTimeLeft, setLockoutTimeLeft] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState('');
   
   const from = location.state?.from?.pathname || '/dashboard';
 
-  // Check for existing lockout on component mount
+  // Check for existing lockout when email changes
   useEffect(() => {
-    const lockoutEndTime = localStorage.getItem('accountLockoutEndTime');
+    if (!currentEmail) {
+      setIsLocked(false);
+      setLockoutTimeLeft(null);
+      return;
+    }
+
+    const lockoutKey = `accountLockoutEndTime_${currentEmail.toLowerCase().trim()}`;
+    const lockoutEndTime = localStorage.getItem(lockoutKey);
+    
     if (lockoutEndTime) {
       const endTime = parseInt(lockoutEndTime);
       const now = Date.now();
@@ -38,19 +47,25 @@ const LoginForm = () => {
         setIsLocked(true);
         setLockoutTimeLeft(Math.ceil((endTime - now) / 1000));
       } else {
-        localStorage.removeItem('accountLockoutEndTime');
+        localStorage.removeItem(lockoutKey);
+        setIsLocked(false);
+        setLockoutTimeLeft(null);
       }
+    } else {
+      setIsLocked(false);
+      setLockoutTimeLeft(null);
     }
-  }, []);
+  }, [currentEmail]);
 
   // Countdown timer effect
   useEffect(() => {
-    if (!isLocked || lockoutTimeLeft === null) return;
+    if (!isLocked || lockoutTimeLeft === null || !currentEmail) return;
 
     if (lockoutTimeLeft <= 0) {
       setIsLocked(false);
       setLockoutTimeLeft(null);
-      localStorage.removeItem('accountLockoutEndTime');
+      const lockoutKey = `accountLockoutEndTime_${currentEmail.toLowerCase().trim()}`;
+      localStorage.removeItem(lockoutKey);
       return;
     }
 
@@ -58,7 +73,8 @@ const LoginForm = () => {
       setLockoutTimeLeft((prev) => {
         if (prev <= 1) {
           setIsLocked(false);
-          localStorage.removeItem('accountLockoutEndTime');
+          const lockoutKey = `accountLockoutEndTime_${currentEmail.toLowerCase().trim()}`;
+          localStorage.removeItem(lockoutKey);
           return 0;
         }
         return prev - 1;
@@ -66,7 +82,7 @@ const LoginForm = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isLocked, lockoutTimeLeft]);
+  }, [isLocked, lockoutTimeLeft, currentEmail]);
 
   // Format time remaining as MM:SS
   const formatTime = (seconds) => {
@@ -106,13 +122,30 @@ const LoginForm = () => {
             setMfaRequired(true);
           } else {
             const errorMessage = error.response?.data?.message || 'Invalid credentials';
+            const errorStatus = error.response?.status;
+            
+            // Debug logging
+            if (import.meta.env.DEV) {
+              console.log('Login error:', {
+                status: errorStatus,
+                message: errorMessage,
+                fullError: error.response?.data,
+              });
+            }
             
             // Check if account is locked (403 status)
-            if (error.response?.status === 403 && errorMessage.toLowerCase().includes('locked')) {
-              // Set lockout for 15 minutes (900 seconds)
+            // Backend returns 403 for account lockout after multiple failed attempts
+            // On login endpoint, 403 typically means account lockout
+            // Treat any 403 from login as lockout (handles generic 403 messages)
+            if (errorStatus === 403 && values.email) {
+              if (import.meta.env.DEV) {
+                console.log('Account lockout detected (403 status), setting timer for:', values.email);
+              }
+              // Set lockout for 15 minutes (900 seconds) - email-specific
               const lockoutDuration = 15 * 60; // 15 minutes in seconds
               const lockoutEndTime = Date.now() + (lockoutDuration * 1000);
-              localStorage.setItem('accountLockoutEndTime', lockoutEndTime.toString());
+              const lockoutKey = `accountLockoutEndTime_${values.email.toLowerCase().trim()}`;
+              localStorage.setItem(lockoutKey, lockoutEndTime.toString());
               setIsLocked(true);
               setLockoutTimeLeft(lockoutDuration);
             }
@@ -122,7 +155,14 @@ const LoginForm = () => {
         }
       }}
     >
-      {({ values, errors, touched, handleChange, handleBlur }) => (
+      {({ values, errors, touched, handleChange, handleBlur }) => {
+        // Create a custom onChange handler that tracks email
+        const handleEmailChange = (e) => {
+          setCurrentEmail(e.target.value);
+          handleChange(e);
+        };
+
+        return (
         <Form className="space-y-4">
           {/* Email Input */}
           <motion.div
@@ -138,7 +178,7 @@ const LoginForm = () => {
                 type="email"
                 name="email"
                 value={values.email}
-                onChange={handleChange}
+                onChange={handleEmailChange}
                 onBlur={handleBlur}
                 placeholder="Email Address"
                 className={`
@@ -188,29 +228,27 @@ const LoginForm = () => {
               />
             </div>
             {errors.password && touched.password && (
-              <div className="mt-2">
-                <p className="text-sm text-red-500">{errors.password}</p>
-                {/* Lockout Timer */}
-                {isLocked && lockoutTimeLeft !== null && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2 text-red-400">
-                      <FiClock className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        Account locked. Please try again in:
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-red-400 font-mono">
-                        {formatTime(lockoutTimeLeft)}
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
+              <p className="mt-2 text-sm text-red-500">{errors.password}</p>
+            )}
+            {/* Lockout Timer - Display independently when account is locked */}
+            {isLocked && lockoutTimeLeft !== null && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg"
+              >
+                <div className="flex items-center gap-2 text-red-400">
+                  <FiClock className="w-4 h-4" />
+                  <span className="text-sm font-medium">
+                    Account locked. Please try again in:
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-red-400 font-mono">
+                    {formatTime(lockoutTimeLeft)}
+                  </span>
+                </div>
+              </motion.div>
             )}
           </motion.div>
           
@@ -341,7 +379,8 @@ const LoginForm = () => {
             </p>
           </motion.div>
         </Form>
-      )}
+        );
+      }}
     </Formik>
   );
 };
