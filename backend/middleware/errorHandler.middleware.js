@@ -20,15 +20,22 @@ const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  // Log error
-  logger.error('Error:', {
-    message: err.message,
-    stack: err.stack,
-    url: req.originalUrl,
-    method: req.method,
-    ip: req.ip,
-    userId: req.user?.userId
-  });
+  // Skip logging for Chrome DevTools and browser extension requests
+  const shouldSkipLogging = req.originalUrl?.includes('.well-known') || 
+                            req.originalUrl?.includes('appspecific') ||
+                            req.originalUrl?.includes('favicon.ico');
+
+  // Log error (skip for browser extension requests)
+  if (!shouldSkipLogging) {
+    logger.error('Error:', {
+      message: err.message,
+      stack: err.stack,
+      url: req.originalUrl,
+      method: req.method,
+      ip: req.ip,
+      userId: req.user?.userId
+    });
+  }
 
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
@@ -75,6 +82,16 @@ const errorHandler = (err, req, res, next) => {
  * Not found handler
  */
 const notFound = (req, res, next) => {
+  // Ignore Chrome DevTools and browser extension requests (don't log or throw error)
+  if (req.originalUrl.includes('.well-known') || 
+      req.originalUrl.includes('appspecific') ||
+      req.originalUrl.includes('favicon.ico')) {
+    return res.status(HTTP_STATUS.NOT_FOUND).json({
+      success: false,
+      error: 'Not found'
+    });
+  }
+
   const error = new AppError(
     `Not found - ${req.originalUrl}`,
     HTTP_STATUS.NOT_FOUND
@@ -87,6 +104,7 @@ module.exports = {
   errorHandler,
   notFound
 };
+
 
 
 

@@ -79,15 +79,24 @@ app.use(cookieParser());
 // Request sanitization
 app.use(sanitize);
 
-// Logging middleware
+// Logging middleware - skip Chrome DevTools requests
+const skipLogging = (req, res) => {
+  return req.originalUrl?.includes('.well-known') || 
+         req.originalUrl?.includes('appspecific') ||
+         req.originalUrl?.includes('favicon.ico');
+};
+
 if (config.NODE_ENV === 'production') {
   app.use(morgan('combined', {
+    skip: skipLogging,
     stream: {
       write: (message) => logger.info(message.trim())
     }
   }));
 } else {
-  app.use(morgan('dev'));
+  app.use(morgan('dev', {
+    skip: skipLogging
+  }));
 }
 
 // Health check endpoint

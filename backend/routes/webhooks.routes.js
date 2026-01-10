@@ -25,7 +25,12 @@ router.get('/esewa', async (req, res, next) => {
     const base64Data = req.query.data;
     
     if (!base64Data) {
-      logger.error('eSewa callback missing data parameter', req.query);
+      // Log as warning instead of error (this is expected when accessing URL directly)
+      logger.warn('eSewa webhook accessed without payment data (likely direct access)', {
+        url: req.originalUrl,
+        query: req.query,
+        ip: req.ip
+      });
       return res.status(HTTP_STATUS.BAD_REQUEST).send('Missing payment data');
     }
 
