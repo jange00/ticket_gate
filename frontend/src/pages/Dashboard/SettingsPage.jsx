@@ -9,7 +9,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Loading from '../../components/ui/Loading';
 import { motion } from 'framer-motion';
-import { FiUser, FiMail, FiPhone, FiLock, FiShield, FiSave } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiLock, FiShield, FiSave, FiCheckCircle, FiAlertCircle, FiKey } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { nameSchema, phoneSchema, emailSchema } from '../../utils/validators';
@@ -70,7 +70,20 @@ const SettingsPage = () => {
     setIsSubmitting(true);
     setSubmitting(true);
     try {
-      await updateProfileMutation.mutateAsync(values);
+      // Clean the values - only include phone if it has a value
+      const cleanedValues = {
+        firstName: values.firstName?.trim(),
+        lastName: values.lastName?.trim(),
+        email: values.email?.trim(),
+      };
+      
+      // Only include phone if it has a value (omit if empty/null)
+      const phoneValue = values.phone?.trim();
+      if (phoneValue) {
+        cleanedValues.phone = phoneValue;
+      }
+      
+      await updateProfileMutation.mutateAsync(cleanedValues);
     } finally {
       setIsSubmitting(false);
       setSubmitting(false);
@@ -97,27 +110,27 @@ const SettingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent mb-2">
-            Settings
-          </h1>
-          <p className="text-gray-600 text-lg">Manage your account settings and preferences</p>
-        </motion.div>
+    <div>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Settings
+        </h1>
+        <p className="text-gray-600">Manage your account settings and preferences</p>
+      </motion.div>
 
-        {/* Tabs */}
-        <div className="flex space-x-1 mb-6 bg-white p-1 rounded-lg shadow-sm border border-gray-200">
+      {/* Tabs */}
+      <Card className="mb-6 p-1">
+        <div className="flex space-x-1">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
               activeTab === 'profile'
                 ? 'bg-orange-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                : 'text-gray-700 hover:bg-gray-50'
             }`}
           >
             <div className="flex items-center justify-center gap-2">
@@ -127,23 +140,23 @@ const SettingsPage = () => {
           </button>
           <button
             onClick={() => setActiveTab('password')}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
               activeTab === 'password'
                 ? 'bg-orange-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                : 'text-gray-700 hover:bg-gray-50'
             }`}
           >
             <div className="flex items-center justify-center gap-2">
-              <FiLock className="w-4 h-4" />
+              <FiKey className="w-4 h-4" />
               Password
             </div>
           </button>
           <button
             onClick={() => setActiveTab('security')}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
               activeTab === 'security'
                 ? 'bg-orange-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
+                : 'text-gray-700 hover:bg-gray-50'
             }`}
           >
             <div className="flex items-center justify-center gap-2">
@@ -152,18 +165,25 @@ const SettingsPage = () => {
             </div>
           </button>
         </div>
+      </Card>
 
-        {/* Profile Tab */}
-        {activeTab === 'profile' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <FiUser className="w-6 h-6 text-orange-600" />
+      {/* Profile Tab */}
+      {activeTab === 'profile' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="p-6 lg:p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <FiUser className="w-5 h-5 text-orange-600" />
+                </div>
                 Profile Information
               </h2>
+              <p className="text-gray-600 text-sm ml-11">Update your personal information and contact details</p>
+            </div>
 
               <Formik
                 initialValues={{
@@ -230,7 +250,7 @@ const SettingsPage = () => {
                       />
                     </div>
 
-                    <div className="flex justify-end pt-4">
+                    <div className="flex justify-end pt-6 border-t border-gray-100">
                       <Button
                         type="submit"
                         variant="primary"
@@ -257,17 +277,23 @@ const SettingsPage = () => {
           </motion.div>
         )}
 
-        {/* Password Tab */}
-        {activeTab === 'password' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <FiLock className="w-6 h-6 text-orange-600" />
+      {/* Password Tab */}
+      {activeTab === 'password' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="p-6 lg:p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <FiKey className="w-5 h-5 text-orange-600" />
+                </div>
                 Change Password
               </h2>
+              <p className="text-gray-600 text-sm ml-11">Update your password to keep your account secure</p>
+            </div>
 
               <Formik
                 initialValues={{
@@ -304,9 +330,23 @@ const SettingsPage = () => {
                         placeholder="Enter new password"
                         error={errors.newPassword && touched.newPassword ? errors.newPassword : null}
                       />
-                      <p className="mt-1 text-xs text-gray-500">
-                        Must be at least 12 characters with uppercase, lowercase, number, and special character
-                      </p>
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs text-blue-800 font-medium mb-1">Password Requirements:</p>
+                        <ul className="text-xs text-blue-700 space-y-1">
+                          <li className="flex items-center gap-2">
+                            <span>•</span>
+                            <span>At least 12 characters long</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span>•</span>
+                            <span>Contains uppercase and lowercase letters</span>
+                          </li>
+                          <li className="flex items-center gap-2">
+                            <span>•</span>
+                            <span>Contains at least one number and special character</span>
+                          </li>
+                        </ul>
+                      </div>
                     </div>
 
                     <div>
@@ -322,7 +362,7 @@ const SettingsPage = () => {
                       />
                     </div>
 
-                    <div className="flex justify-end pt-4">
+                    <div className="flex justify-end pt-6 border-t border-gray-100">
                       <Button
                         type="submit"
                         variant="primary"
@@ -336,7 +376,7 @@ const SettingsPage = () => {
                           </>
                         ) : (
                           <>
-                            <FiLock className="w-4 h-4" />
+                            <FiKey className="w-4 h-4" />
                             Change Password
                           </>
                         )}
@@ -349,61 +389,117 @@ const SettingsPage = () => {
           </motion.div>
         )}
 
-        {/* Security Tab */}
-        {activeTab === 'security' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <FiShield className="w-6 h-6 text-orange-600" />
+      {/* Security Tab */}
+      {activeTab === 'security' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="p-6 lg:p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <FiShield className="w-5 h-5 text-orange-600" />
+                </div>
                 Security Settings
               </h2>
+              <p className="text-gray-600 text-sm ml-11">Manage your account security and authentication methods</p>
+            </div>
 
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div>
-                    <h3 className="font-medium text-gray-900">Two-Factor Authentication</h3>
-                    <p className="text-sm text-gray-600 mt-1">
+            <div className="space-y-4">
+              {/* Two-Factor Authentication */}
+              <Card className="p-5 border-2 border-gray-100 hover:border-orange-200 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-orange-50 rounded-lg">
+                        <FiShield className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <h3 className="font-semibold text-gray-900">Two-Factor Authentication</h3>
+                      {user.mfaEnabled && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                          <FiCheckCircle className="w-3 h-3" />
+                          Enabled
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 ml-11">
                       {user.mfaEnabled
-                        ? 'MFA is currently enabled on your account'
-                        : 'Add an extra layer of security to your account'}
+                        ? 'An extra layer of security is currently protecting your account'
+                        : 'Add an extra layer of security to protect your account from unauthorized access'}
                     </p>
                   </div>
-                  <Link to="/mfa/setup">
-                    <Button variant={user.mfaEnabled ? 'outline' : 'primary'}>
+                  <Link to="/mfa-setup">
+                    <Button variant={user.mfaEnabled ? 'outline' : 'primary'} className="whitespace-nowrap">
                       {user.mfaEnabled ? 'Manage MFA' : 'Setup MFA'}
                     </Button>
                   </Link>
                 </div>
+              </Card>
 
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <h3 className="font-medium text-gray-900 mb-2">Account Status</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Email Verified:</span>
-                      <span className={user.isEmailVerified ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                        {user.isEmailVerified ? 'Yes' : 'No'}
-                      </span>
+              {/* Account Status */}
+              <Card className="p-5">
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FiUser className="w-5 h-5 text-gray-600" />
+                  Account Status
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                    <div className="flex items-center gap-3">
+                      <FiMail className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">Email Verified</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Account Status:</span>
-                      <span className={user.isActive ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                        {user.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Role:</span>
-                      <span className="text-gray-900 font-semibold capitalize">{user.role}</span>
+                    <div className="flex items-center gap-2">
+                      {user.isEmailVerified ? (
+                        <>
+                          <FiCheckCircle className="w-5 h-5 text-green-600" />
+                          <span className="text-sm font-semibold text-green-600">Verified</span>
+                        </>
+                      ) : (
+                        <>
+                          <FiAlertCircle className="w-5 h-5 text-red-600" />
+                          <span className="text-sm font-semibold text-red-600">Not Verified</span>
+                        </>
+                      )}
                     </div>
                   </div>
+                  
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                    <div className="flex items-center gap-3">
+                      <FiShield className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">Account Status</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {user.isActive ? (
+                        <>
+                          <FiCheckCircle className="w-5 h-5 text-green-600" />
+                          <span className="text-sm font-semibold text-green-600">Active</span>
+                        </>
+                      ) : (
+                        <>
+                          <FiAlertCircle className="w-5 h-5 text-red-600" />
+                          <span className="text-sm font-semibold text-red-600">Inactive</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3">
+                      <FiUser className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">Role</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 capitalize px-3 py-1 bg-gray-100 rounded-full">
+                      {user.role}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </div>
+              </Card>
+            </div>
+          </Card>
+        </motion.div>
+      )}
     </div>
   );
 };

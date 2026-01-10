@@ -19,14 +19,17 @@ export const handleApiError = (error) => {
         errors: data.errors,
       };
     case 401:
+      // Use backend message if available (e.g., invalid credentials)
       return {
-        message: 'Unauthorized. Please login again.',
+        message: data.message || 'Unauthorized. Please login again.',
         code: 'UNAUTHORIZED',
       };
     case 403:
+      // Use backend message if available (e.g., account locked)
       return {
-        message: 'Access denied. You do not have permission.',
+        message: data.message || 'Access denied. You do not have permission.',
         code: 'FORBIDDEN',
+        isAccountLocked: data.message?.toLowerCase().includes('locked') || false,
       };
     case 404:
       return {
@@ -35,8 +38,10 @@ export const handleApiError = (error) => {
       };
     case 429:
       const retryAfter = error.response.headers['retry-after'];
+      // Use backend message if available, otherwise construct message with retry-after
+      const rateLimitMessage = data.message || `Too many requests. Please wait ${retryAfter || 'a few'} seconds.`;
       return {
-        message: `Too many requests. Please wait ${retryAfter || 'a few'} seconds.`,
+        message: rateLimitMessage,
         code: 'RATE_LIMIT',
         retryAfter: retryAfter ? parseInt(retryAfter) : null,
       };

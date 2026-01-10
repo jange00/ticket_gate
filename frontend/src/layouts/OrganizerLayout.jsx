@@ -14,7 +14,6 @@ const OrganizerLayout = () => {
   const navItems = [
     { path: '/organizer/dashboard', label: 'Dashboard', icon: HomeIcon },
     { path: '/organizer/events', label: 'My Events', icon: CalendarIcon },
-    { path: '/organizer/analytics', label: 'Analytics', icon: ChartBarIcon },
     { path: '/organizer/sales', label: 'Sales Reports', icon: TicketIcon },
     { path: '/organizer/refunds', label: 'Refunds', icon: TicketIcon },
     { path: '/organizer/settings', label: 'Settings', icon: Cog6ToothIcon },

@@ -25,8 +25,17 @@ export const nameSchema = Yup.string()
   .required('Name is required');
 
 export const phoneSchema = Yup.string()
-  .matches(/^[0-9]{10}$/, 'Phone number must be 10 digits')
-  .optional();
+  .nullable()
+  .transform((value, originalValue) => {
+    // Convert empty string to null
+    return originalValue === '' ? null : value;
+  })
+  .test('phone-format', 'Phone number must be 10 digits', function(value) {
+    // If value is null or empty, it's valid (optional field)
+    if (!value || value === '') return true;
+    // Otherwise, validate format
+    return /^[0-9]{10}$/.test(value);
+  });
 
 export const eventTitleSchema = Yup.string()
   .min(3, 'Title must be at least 3 characters')
