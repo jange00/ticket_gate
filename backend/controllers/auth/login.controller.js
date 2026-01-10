@@ -42,7 +42,18 @@ const login = async (req, res, next) => {
         userAgent,
         severity: 'high'
       });
-      throw new AppError(ERROR_MESSAGES.ACCOUNT_LOCKED, HTTP_STATUS.FORBIDDEN);
+      
+      // Calculate remaining lockout time
+      const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000); // in seconds
+      const lockoutMinutes = Math.ceil(remainingTime / 60);
+      
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        error: ERROR_MESSAGES.ACCOUNT_LOCKED,
+        lockoutTime: remainingTime, // in seconds
+        lockoutMinutes: lockoutMinutes, // in minutes
+        message: `Account locked. Please try again in ${lockoutMinutes} minute(s).`
+      });
     }
 
     // Check if account is active
@@ -293,6 +304,7 @@ module.exports = {
   refreshToken,
   logout
 };
+
 
 
 

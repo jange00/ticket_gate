@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const { ROLES } = require('../utils/constants');
+const config = require('../config/env');
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -146,8 +147,8 @@ userSchema.methods.incLoginAttempts = async function() {
   const updates = { $inc: { loginAttempts: 1 } };
   
     // Lock account after MAX_LOGIN_ATTEMPTS
-    if (this.loginAttempts + 1 >= 5 && !this.isAccountLocked()) {
-      updates.$set = { lockUntil: Date.now() + 15 * 60 * 1000 }; // 15 minutes
+    if (this.loginAttempts + 1 >= config.MAX_LOGIN_ATTEMPTS && !this.isAccountLocked()) {
+      updates.$set = { lockUntil: Date.now() + config.LOCKOUT_TIME }; // 3 minutes
     }
   
   return this.updateOne(updates);

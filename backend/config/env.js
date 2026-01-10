@@ -48,7 +48,7 @@ module.exports = {
   PASSWORD_EXPIRY_DAYS: parseInt(process.env.PASSWORD_EXPIRY_DAYS || '90'),
   PASSWORD_EXPIRY_WARNING_DAYS: parseInt(process.env.PASSWORD_EXPIRY_WARNING_DAYS || '10'),
   MAX_LOGIN_ATTEMPTS: parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5'),
-  LOCKOUT_TIME: parseInt(process.env.LOCKOUT_TIME || '900000'), // 15 minutes
+  LOCKOUT_TIME: parseInt(process.env.LOCKOUT_TIME || '180000'), // 3 minutes
   SESSION_MAX_AGE: parseInt(process.env.SESSION_MAX_AGE || '86400000'), // 24 hours
   
   // Rate Limiting
