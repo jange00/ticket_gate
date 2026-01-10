@@ -1,8 +1,11 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiStar } from 'react-icons/fi';
+import { FiArrowRight, FiStar, FiCalendar } from 'react-icons/fi';
+import { useQuery } from '@tanstack/react-query';
+import { eventsApi } from '../../api/events.api';
 import Button from '../ui/Button';
+import { formatDateTime } from '../../utils/formatters';
 
 const HeroSection = () => {
   const sectionRef = useRef(null);
@@ -38,6 +41,39 @@ const HeroSection = () => {
       },
     },
   };
+
+  // Fetch latest events
+  const { data: eventsData } = useQuery({
+    queryKey: ['events', 'latest'],
+    queryFn: () => eventsApi.getAll({ limit: 4, status: 'published' }),
+  });
+
+  // Handle different response structures
+  let latestEvents = [];
+  if (eventsData) {
+    const responseData = eventsData.data;
+    if (responseData) {
+      if (responseData.success && responseData.data) {
+        if (Array.isArray(responseData.data)) {
+          latestEvents = responseData.data.filter(e => e.status === 'published').slice(0, 4);
+        } else if (responseData.data.events && Array.isArray(responseData.data.events)) {
+          latestEvents = responseData.data.events.filter(e => e.status === 'published').slice(0, 4);
+        } else if (responseData.data.data && Array.isArray(responseData.data.data)) {
+          latestEvents = responseData.data.data.filter(e => e.status === 'published').slice(0, 4);
+        }
+      } else if (responseData.data && Array.isArray(responseData.data)) {
+        latestEvents = responseData.data.filter(e => e.status === 'published').slice(0, 4);
+      } else if (responseData.events && Array.isArray(responseData.events)) {
+        latestEvents = responseData.events.filter(e => e.status === 'published').slice(0, 4);
+      } else if (Array.isArray(responseData)) {
+        latestEvents = responseData.filter(e => e.status === 'published').slice(0, 4);
+      }
+    }
+  }
+
+  if (!Array.isArray(latestEvents)) {
+    latestEvents = [];
+  }
 
   return (
     <section 
@@ -230,25 +266,95 @@ const HeroSection = () => {
               className="relative bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 shadow-2xl"
             >
               <div className="grid grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 30, scale: 0.8, rotate: -5 }}
-                    animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-                    transition={{ 
-                      delay: 0.5 + i * 0.15,
-                      type: 'spring',
-                      stiffness: 200,
-                      damping: 15
-                    }}
-                    whileHover={{ scale: 1.05, rotate: 2 }}
-                    className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
-                  >
-                    <div className="w-12 h-12 bg-white/10 rounded-lg mb-3" />
-                    <div className="h-3 bg-white/20 rounded mb-2" />
-                    <div className="h-2 bg-white/10 rounded w-2/3" />
-                  </motion.div>
-                ))}
+                {latestEvents.length > 0 ? (
+                  latestEvents.map((event, index) => (
+                    <Link key={event._id || index} to={`/events/${event._id}`}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 30, scale: 0.8, rotate: -5 }}
+                        animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+                        transition={{ 
+                          delay: 0.5 + index * 0.15,
+                          type: 'spring',
+                          stiffness: 200,
+                          damping: 15
+                        }}
+                        whileHover={{ scale: 1.08, rotate: 2, y: -5 }}
+                        className="group relative bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 hover:border-white/40 hover:bg-white/15 transition-all duration-300 cursor-pointer overflow-hidden shadow-lg hover:shadow-2xl"
+                      >
+                        {/* Gradient overlay on hover */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-br from-orange-500/20 via-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          initial={false}
+                        />
+                        
+                        {event.imageUrl ? (
+                          <motion.div 
+                            className="relative w-full h-24 bg-white/10 rounded-xl mb-3 overflow-hidden shadow-inner"
+                            whileHover={{ scale: 1.05 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <img 
+                              src={event.imageUrl} 
+                              alt={event.title}
+                              className="w-full h-full object-cover"
+                            />
+                            {/* Gradient overlay on image */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            {/* Shine effect on hover */}
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                              initial={{ x: '-100%' }}
+                              whileHover={{ x: '100%' }}
+                              transition={{ duration: 0.6 }}
+                            />
+                          </motion.div>
+                        ) : (
+                          <div className="relative w-full h-24 bg-gradient-to-br from-white/10 to-white/5 rounded-xl mb-3 flex items-center justify-center border border-white/10">
+                            <FiCalendar className="w-10 h-10 text-white/50 group-hover:text-white/80 transition-colors duration-300" />
+                            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                          </div>
+                        )}
+                        
+                        <div className="relative z-10">
+                          <div className="line-clamp-2 text-sm font-bold text-white mb-2 group-hover:text-orange-200 transition-colors duration-300">
+                            {event.title || 'Event'}
+                          </div>
+                          {event.startDate && (
+                            <div className="flex items-center gap-2">
+                              <div className="w-1 h-1 bg-orange-400 rounded-full group-hover:bg-orange-300 transition-colors" />
+                              <div className="text-xs font-medium text-white/80 group-hover:text-white transition-colors">
+                                {new Date(event.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Corner accent */}
+                        <div className="absolute top-2 right-2 w-2 h-2 bg-orange-400/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </motion.div>
+                    </Link>
+                  ))
+                ) : (
+                  [1, 2, 3, 4].map((i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 30, scale: 0.8, rotate: -5 }}
+                      animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+                      transition={{ 
+                        delay: 0.5 + i * 0.15,
+                        type: 'spring',
+                        stiffness: 200,
+                        damping: 15
+                      }}
+                      whileHover={{ scale: 1.05, rotate: 2 }}
+                      className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
+                    >
+                      <div className="w-full h-20 bg-white/10 rounded-lg mb-3" />
+                      <div className="h-3 bg-white/20 rounded mb-2" />
+                      <div className="h-2 bg-white/10 rounded w-2/3" />
+                    </motion.div>
+                  ))
+                )}
               </div>
             </motion.div>
           </motion.div>
