@@ -1,13 +1,40 @@
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { purchasesApi } from '../../api/purchases.api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import Loading from '../../components/ui/Loading';
+import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { motion } from 'framer-motion';
-import { FiXCircle, FiArrowLeft, FiHome, FiRefreshCw } from 'react-icons/fi';
+import { FiXCircle, FiArrowLeft, FiHome, FiRefreshCw, FiCalendar, FiTag, FiDollarSign } from 'react-icons/fi';
 
 const PurchaseFailurePage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const transactionId = searchParams.get('transactionId');
+
+  // Optionally fetch purchase details
+  const { data: purchaseData, isLoading: isLoadingPurchase } = useQuery({
+    queryKey: ['purchase-transaction', transactionId],
+    queryFn: () => purchasesApi.getByTransactionId(transactionId),
+    enabled: !!transactionId,
+    retry: false, // Don't retry on failure page
+  });
+
+  // Extract purchase data - handle various response structures
+  let purchase = null;
+  if (purchaseData) {
+    const responseData = purchaseData?.data;
+    if (responseData) {
+      if (responseData.success && responseData.data) {
+        purchase = responseData.data.purchase || responseData.data;
+      } else if (responseData.data) {
+        purchase = responseData.data.purchase || responseData.data;
+      } else {
+        purchase = responseData.purchase || responseData;
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50/30">
@@ -38,7 +65,58 @@ const PurchaseFailurePage = () => {
             {transactionId && (
               <div className="p-4 rounded-xl bg-gradient-to-br from-gray-50 to-white border border-gray-200">
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Transaction ID</p>
-                <p className="font-bold text-gray-900 text-lg">{transactionId}</p>
+                <p className="font-bold text-gray-900 text-lg break-all">{transactionId}</p>
+              </div>
+            )}
+
+            {/* Purchase Details (if available) */}
+            {isLoadingPurchase && (
+              <div className="py-8">
+                <Loading />
+              </div>
+            )}
+
+            {purchase && !isLoadingPurchase && (
+              <div className="pb-6 border-b-2 border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                    <FiTag className="w-5 h-5 text-white" />
+                  </div>
+                  Purchase Details
+                </h2>
+                <div className="space-y-4">
+                  {purchase.event && (
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-white border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg mt-0.5">
+                          <FiCalendar className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Event</p>
+                          <p className="font-bold text-gray-900 text-lg">{purchase.event.title}</p>
+                          {purchase.event.startDate && (
+                            <p className="text-sm text-gray-600 mt-1">{formatDateTime(purchase.event.startDate)}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {purchase.totalAmount && (
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-white border border-orange-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-orange-100 rounded-lg">
+                            <FiDollarSign className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Amount</p>
+                        </div>
+                        <p className="font-bold text-xl bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">
+                          {formatCurrency(purchase.totalAmount)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -105,5 +183,6 @@ const PurchaseFailurePage = () => {
 };
 
 export default PurchaseFailurePage;
+
 
 

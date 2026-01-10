@@ -14,7 +14,11 @@ export const purchasesApi = {
   
   getById: (id) => client.get(`/purchases/${id}`),
   
+  getByTransactionId: (transactionId) => client.get(`/purchases/transaction/${transactionId}`),
+  
   getStatus: (transactionId) => client.get(`/purchases/status/${transactionId}`),
+  
+  getTickets: (id) => client.get(`/purchases/${id}/tickets`),
   
   create: (data) => client.post('/purchases', data),
 };
