@@ -16,37 +16,52 @@ import toast from 'react-hot-toast';
 const AnalyticsPage = () => {
   const [dateRange, setDateRange] = useState('6months');
 
-  const { data: statsData, isLoading } = useQuery({
+  const { data: statsData, isLoading, error } = useQuery({
     queryKey: ['adminStatistics', dateRange],
-    queryFn: () => adminApi.getStatistics(),
+    queryFn: async () => {
+      const response = await adminApi.getStatistics();
+      return response.data;
+    },
   });
 
-  const stats = statsData?.data?.data || statsData?.data || {};
+  const stats = statsData?.data || {};
 
   // Prepare chart data from backend response
-  const revenueByMonth = stats.revenue?.byMonth || [];
-  const revenueData = revenueByMonth.map(item => ({
-    name: format(new Date(item._id.year, item._id.month - 1), 'MMM'),
-    revenue: item.revenue || 0,
-  }));
+  const revenueByMonth = stats.revenueByMonth || [];
+  const revenueData = revenueByMonth.length > 0 
+    ? revenueByMonth.map(item => ({
+        name: format(new Date(item.year || item._id?.year || new Date().getFullYear(), (item.month || item._id?.month || new Date().getMonth() + 1) - 1), 'MMM'),
+        revenue: item.revenue || item.total || 0,
+      }))
+    : [];
 
-  // Use mock data if backend doesn't provide (should be replaced with real user growth data)
-  const userGrowthData = Array.from({ length: 6 }, (_, i) => {
-    const date = subMonths(new Date(), 5 - i);
-    return {
-      name: format(date, 'MMM'),
-      users: Math.floor(Math.random() * 200) + 50, // Mock - replace with real data
-    };
-  });
+  // Use user growth data from backend if available, otherwise use mock
+  const userGrowthData = stats.userGrowth && stats.userGrowth.length > 0
+    ? stats.userGrowth.map(item => ({
+        name: format(new Date(item.year || item._id?.year || new Date().getFullYear(), (item.month || item._id?.month || new Date().getMonth() + 1) - 1), 'MMM'),
+        users: item.growth || item.count || item.users || 0,
+      }))
+    : Array.from({ length: 6 }, (_, i) => {
+        const date = subMonths(new Date(), 5 - i);
+        return {
+          name: format(date, 'MMM'),
+          users: 0, // Show zero if no data
+        };
+      });
 
-  // Use mock data if backend doesn't provide (should be replaced with real sales data)
-  const salesData = Array.from({ length: 6 }, (_, i) => {
-    const date = subMonths(new Date(), 5 - i);
-    return {
-      name: format(date, 'MMM'),
-      sales: Math.floor(Math.random() * 500) + 100, // Mock - replace with real data
-    };
-  });
+  // Use sales/tickets data from backend if available, otherwise use mock
+  const salesData = stats.ticketsByMonth && stats.ticketsByMonth.length > 0
+    ? stats.ticketsByMonth.map(item => ({
+        name: format(new Date(item.year || item._id?.year || new Date().getFullYear(), (item.month || item._id?.month || new Date().getMonth() + 1) - 1), 'MMM'),
+        sales: item.count || item.tickets || item.sales || 0,
+      }))
+    : Array.from({ length: 6 }, (_, i) => {
+        const date = subMonths(new Date(), 5 - i);
+        return {
+          name: format(date, 'MMM'),
+          sales: 0, // Show zero if no data
+        };
+      });
 
   const handleExport = (type) => {
     toast.success(`${type} data exported successfully`);
@@ -59,31 +74,33 @@ const AnalyticsPage = () => {
   const summaryStats = [
     {
       label: 'Total Users',
-      value: stats.users?.total || 0,
+      value: stats.totalUsers?.toLocaleString() || '0',
       icon: FiUsers,
-      color: 'from-blue-500 to-blue-600',
-      change: '+12%',
+      color: 'bg-blue-500',
+      change: stats.userGrowth && stats.userGrowth.length > 0 
+        ? `+${stats.userGrowth[stats.userGrowth.length - 1]?.growth || 0}%`
+        : '+0%',
     },
     {
       label: 'Total Events',
-      value: stats.events?.total || 0,
+      value: stats.totalEvents?.toLocaleString() || '0',
       icon: FiCalendar,
-      color: 'from-purple-500 to-purple-600',
-      change: '+8%',
+      color: 'bg-purple-500',
+      change: '+0%',
     },
     {
       label: 'Total Revenue',
-      value: formatCurrency(stats.revenue?.total || 0),
+      value: formatCurrency(stats.totalRevenue || 0),
       icon: FiDollarSign,
-      color: 'from-green-500 to-green-600',
-      change: '+15%',
+      color: 'bg-green-500',
+      change: '+0%',
     },
     {
       label: 'Tickets Sold',
-      value: stats.tickets?.total || 0,
+      value: stats.totalTicketsSold?.toLocaleString() || '0',
       icon: FiTag,
-      color: 'from-orange-500 to-orange-600',
-      change: '+10%',
+      color: 'bg-orange-500',
+      change: '+0%',
     },
   ];
 
@@ -115,27 +132,27 @@ const AnalyticsPage = () => {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {summaryStats.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
-                  <stat.icon className="w-5 h-5 text-white" />
+        {summaryStats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.label} className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.label}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {stat.value}
+                  </p>
+                  {stat.change && (
+                    <p className="text-sm text-green-600 dark:text-green-400 mt-1">{stat.change}</p>
+                  )}
                 </div>
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">{stat.change}</span>
+                <div className={`${stat.color} p-3 rounded-lg`}>
+                  <Icon className="h-6 w-6 text-white" />
+                </div>
               </div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.label}</p>
-              <p className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-                {stat.value}
-              </p>
             </Card>
-          </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Charts */}

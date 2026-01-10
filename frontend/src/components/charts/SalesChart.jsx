@@ -1,37 +1,19 @@
-let rechartsAvailable = false;
-let AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer;
-
-try {
-  const recharts = require('recharts');
-  AreaChart = recharts.AreaChart;
-  Area = recharts.Area;
-  XAxis = recharts.XAxis;
-  YAxis = recharts.YAxis;
-  CartesianGrid = recharts.CartesianGrid;
-  Tooltip = recharts.Tooltip;
-  Legend = recharts.Legend;
-  ResponsiveContainer = recharts.ResponsiveContainer;
-  rechartsAvailable = true;
-} catch (e) {
-  rechartsAvailable = false;
-}
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
 
 const SalesChart = ({ data = [], className = '' }) => {
   if (!data || data.length === 0) {
     return (
-      <div className={`flex items-center justify-center h-64 bg-gray-50 rounded-lg ${className}`}>
-        <p className="text-gray-500">No data available</p>
-      </div>
-    );
-  }
-  
-  if (!rechartsAvailable) {
-    return (
-      <div className={`flex flex-col items-center justify-center h-64 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border-2 border-dashed border-green-300 ${className}`}>
-        <p className="text-green-600 font-semibold mb-2">Chart Library Not Installed</p>
-        <p className="text-sm text-green-700 text-center px-4">
-          Please run: <code className="bg-green-200 px-2 py-1 rounded">npm install recharts</code>
-        </p>
+      <div className={`flex items-center justify-center h-64 bg-gray-50 dark:bg-gray-700 rounded-lg ${className}`}>
+        <p className="text-gray-500 dark:text-gray-400">No data available</p>
       </div>
     );
   }

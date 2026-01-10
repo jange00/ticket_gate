@@ -47,7 +47,7 @@ const AdminLayout = () => {
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
-          <aside className="lg:w-64 flex-shrink-0">
+          <aside className="lg:w-64 flex-shrink-0 lg:sticky lg:top-8 lg:self-start">
             <nav className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;

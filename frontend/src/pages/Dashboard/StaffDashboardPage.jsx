@@ -42,22 +42,19 @@ const StaffDashboardPage = () => {
       label: "Today's Check-ins",
       value: 0, // Would come from API
       icon: FiCheckCircle,
-      color: 'from-green-500 to-green-600',
-      bgColor: 'bg-green-50',
+      color: 'bg-green-500',
     },
     {
       label: 'Events Today',
       value: todayEvents.length,
       icon: FiCalendar,
-      color: 'from-blue-500 to-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'bg-blue-500',
     },
     {
       label: 'Total Verified',
       value: 0, // Would come from API
       icon: FiUsers,
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'bg-purple-500',
     },
   ];
 
@@ -82,28 +79,31 @@ const StaffDashboardPage = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className="p-6 hover:shadow-xl transition-shadow duration-300 border-l-4 border-l-blue-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">{stat.label}</p>
-                    <p className={`text-3xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-                      {stat.value}
-                    </p>
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.label}</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                        {stat.value}
+                      </p>
+                    </div>
+                    <div className={`${stat.color} p-3 rounded-lg`}>
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
                   </div>
-                  <div className={`p-4 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
-                    <stat.icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

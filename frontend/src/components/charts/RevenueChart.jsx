@@ -2,8 +2,8 @@
 const RevenueChart = ({ data = [], className = '' }) => {
   if (!data || data.length === 0) {
     return (
-      <div className={`flex items-center justify-center h-64 bg-gray-50 rounded-lg ${className}`}>
-        <p className="text-gray-500">No data available</p>
+      <div className={`flex items-center justify-center h-64 bg-gray-50 dark:bg-gray-700 rounded-lg ${className}`}>
+        <p className="text-gray-500 dark:text-gray-400">No data available</p>
       </div>
     );
   }
@@ -48,7 +48,7 @@ const RevenueChart = ({ data = [], className = '' }) => {
                   </div>
                 </div>
                 {/* Month label */}
-                <div className="mt-3 text-xs text-gray-700 text-center font-semibold">
+                <div className="mt-3 text-xs text-gray-700 dark:text-gray-300 text-center font-semibold">
                   {item.name}
                 </div>
               </div>
@@ -56,9 +56,9 @@ const RevenueChart = ({ data = [], className = '' }) => {
           })}
         </div>
       </div>
-      <div className="mt-6 pt-4 border-t-2 border-gray-200">
+      <div className="mt-6 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
-          <span className="text-gray-600 font-medium">Chart Total</span>
+          <span className="text-gray-600 dark:text-gray-400 font-medium">Chart Total</span>
           <span className="font-bold text-lg bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
             NPR {data.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
           </span>

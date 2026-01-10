@@ -95,29 +95,25 @@ const OrganizerDashboardPage = () => {
       label: 'Total Events',
       value: totalEvents,
       icon: FiCalendar,
-      color: 'from-blue-500 to-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'bg-blue-500',
     },
     {
       label: 'Published Events',
       value: publishedEvents,
       icon: FiTag,
-      color: 'from-green-500 to-green-600',
-      bgColor: 'bg-green-50',
+      color: 'bg-green-500',
     },
     {
       label: 'Tickets Sold',
       value: totalTicketsSold,
       icon: FiTrendingUp,
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'bg-purple-500',
     },
     {
       label: 'Total Revenue',
       value: formatCurrency(totalRevenue),
       icon: FiDollarSign,
-      color: 'from-orange-500 to-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'bg-orange-500',
     },
   ];
 
@@ -170,35 +166,33 @@ const OrganizerDashboardPage = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statCards.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -4 }}
-            >
-              <Card className="p-6 hover:shadow-2xl transition-all duration-300 relative overflow-hidden group border-0 shadow-lg">
-                {/* Gradient background overlay on hover */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
-                
-                {/* Left border accent - thicker and more prominent */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${stat.color} rounded-l-2xl shadow-lg`}></div>
-                
-                <div className="relative flex items-center justify-between">
-                  <div className="flex-1 pl-2">
-                    <p className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">{stat.label}</p>
-                    <p className={`text-3xl font-extrabold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-                      {stat.value}
-                    </p>
+          {statCards.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        {stat.label}
+                      </p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                        {stat.value}
+                      </p>
+                    </div>
+                    <div className={`${stat.color} p-3 rounded-lg`}>
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
                   </div>
-                  <div className={`p-4 rounded-2xl bg-gradient-to-br ${stat.color} shadow-xl group-hover:scale-110 group-hover:shadow-2xl transition-all duration-300`}>
-                    <stat.icon className="w-7 h-7 text-white" />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

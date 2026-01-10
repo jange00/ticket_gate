@@ -58,8 +58,11 @@ const UserManagementPage = () => {
   const users = usersData?.data?.users || [];
   const pagination = usersData?.data?.pagination || {};
 
+  // Helper to get user ID (supports both id and _id)
+  const getUserId = (user) => user.id || user._id;
+
   const handleEdit = (user) => {
-    setEditingUser(user.id);
+    setEditingUser(getUserId(user));
     setEditForm({
       role: user.role || '',
       isActive: user.isActive !== undefined ? user.isActive : true,
@@ -188,8 +191,10 @@ const UserManagementPage = () => {
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                users.map((user) => {
+                  const userId = getUserId(user);
+                  return (
+                  <tr key={userId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-medium">
@@ -200,7 +205,7 @@ const UserManagementPage = () => {
                             {user.firstName} {user.lastName}
                           </div>
                           <div className="text-xs font-mono text-gray-500 dark:text-gray-400 break-all">
-                            {user.id || user._id}
+                            {userId}
                           </div>
                         </div>
                       </div>
@@ -209,7 +214,7 @@ const UserManagementPage = () => {
                       <div className="text-sm text-gray-900 dark:text-white">{user.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingUser === user.id ? (
+                      {editingUser === userId ? (
                         <select
                           value={editForm.role}
                           onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
@@ -227,7 +232,7 @@ const UserManagementPage = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingUser === user.id ? (
+                      {editingUser === userId ? (
                         <select
                           value={editForm.isActive ? 'active' : 'inactive'}
                           onChange={(e) => setEditForm({ ...editForm, isActive: e.target.value === 'active' })}
@@ -257,7 +262,7 @@ const UserManagementPage = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {editingUser === user.id ? (
+                      {editingUser === userId ? (
                         <select
                           value={editForm.isEmailVerified ? 'verified' : 'unverified'}
                           onChange={(e) => setEditForm({ ...editForm, isEmailVerified: e.target.value === 'verified' })}
@@ -287,7 +292,7 @@ const UserManagementPage = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {editingUser === user.id ? (
+                      {editingUser === userId ? (
                         <div className="flex space-x-2">
                           <button
                             onClick={handleSave}
@@ -314,7 +319,8 @@ const UserManagementPage = () => {
                       )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

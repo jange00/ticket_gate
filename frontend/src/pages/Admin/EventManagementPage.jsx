@@ -10,7 +10,7 @@ import Table from '../../components/ui/Table';
 import { formatDateTime, formatCurrency } from '../../utils/formatters';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiEye, FiEdit, FiTrash2, FiCalendar, FiUser, FiSearch } from 'react-icons/fi';
+import { FiEye, FiTrash2, FiCalendar, FiUser, FiSearch } from 'react-icons/fi';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -20,12 +20,17 @@ const EventManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteEventId, setDeleteEventId] = useState(null);
 
-  const { data, isLoading, error } = useQuery({
+  const { data: eventsData, isLoading, error } = useQuery({
     queryKey: ['allEvents', filter, searchQuery],
-    queryFn: () => eventsApi.getAll({ 
-      status: filter !== 'all' ? filter : undefined,
-      search: searchQuery || undefined
-    }),
+    queryFn: async () => {
+      const response = await eventsApi.getAll({ 
+        status: filter !== 'all' ? filter : undefined,
+        search: searchQuery || undefined,
+        limit: 1000, // Fetch a large number of events
+        populate: 'organizer' // Request populated organizer data
+      });
+      return response.data;
+    },
   });
 
   const deleteMutation = useMutation({
@@ -40,33 +45,101 @@ const EventManagementPage = () => {
     },
   });
 
-  // Process events data
+  // Extract events - handle various response structures
   let events = [];
-  if (data) {
-    const responseData = data.data;
+  if (eventsData) {
+    const responseData = eventsData;
     if (responseData) {
-      if (responseData.data && Array.isArray(responseData.data)) {
+      // Handle { success: true, data: { events: [...] } }
+      if (responseData.success && responseData.data) {
+        if (Array.isArray(responseData.data)) {
+          events = responseData.data;
+        } else if (responseData.data.events && Array.isArray(responseData.data.events)) {
+          events = responseData.data.events;
+        } else if (responseData.data.data && Array.isArray(responseData.data.data)) {
+          events = responseData.data.data;
+        }
+      }
+      // Handle { success: true, data: [...] } directly
+      else if (responseData.data && Array.isArray(responseData.data)) {
         events = responseData.data;
-      } else if (Array.isArray(responseData)) {
-        events = responseData;
-      } else if (responseData.events && Array.isArray(responseData.events)) {
+      }
+      // Handle { events: [...] }
+      else if (responseData.events && Array.isArray(responseData.events)) {
         events = responseData.events;
+      }
+      // Handle direct array
+      else if (Array.isArray(responseData)) {
+        events = responseData;
       }
     }
   }
 
+  // Debug: Log event structure to understand organizer data
+  if (import.meta.env.DEV && events.length > 0) {
+    console.log('EventManagementPage - First event structure:', events[0]);
+    console.log('EventManagementPage - Organizer data:', events[0]?.organizer);
+    console.log('EventManagementPage - OrganizerId:', events[0]?.organizerId);
+  }
+
+  // Ensure events is always an array
   if (!Array.isArray(events)) {
     events = [];
   }
+
+  // Helper function to get organizer display name
+  const getOrganizerName = (event) => {
+    // Check organizerId first (backend returns populated organizer data in organizerId field)
+    if (event.organizerId) {
+      if (typeof event.organizerId === 'object' && !Array.isArray(event.organizerId) && event.organizerId !== null) {
+        // organizerId is a populated object with firstName/lastName
+        if (event.organizerId.firstName || event.organizerId.lastName) {
+          const name = `${event.organizerId.firstName || ''} ${event.organizerId.lastName || ''}`.trim();
+          if (name) return name;
+        }
+        if (event.organizerId.name) {
+          return event.organizerId.name;
+        }
+        if (event.organizerId.email) {
+          return event.organizerId.email;
+        }
+      }
+      // If organizerId is a string (just an ID)
+      if (typeof event.organizerId === 'string') {
+        return event.organizerId;
+      }
+    }
+    
+    // Check organizer field as fallback
+    if (event.organizer) {
+      if (typeof event.organizer === 'object' && !Array.isArray(event.organizer) && event.organizer !== null) {
+        if (event.organizer.firstName || event.organizer.lastName) {
+          const name = `${event.organizer.firstName || ''} ${event.organizer.lastName || ''}`.trim();
+          if (name) return name;
+        }
+        if (event.organizer.name) {
+          return event.organizer.name;
+        }
+        if (event.organizer.email) {
+          return event.organizer.email;
+        }
+      }
+      if (typeof event.organizer === 'string') {
+        return event.organizer;
+      }
+    }
+    
+    return 'N/A';
+  };
 
   // Filter by search
   const filteredEvents = events.filter(event => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
+    const organizerName = getOrganizerName(event).toLowerCase();
     return (
       event.title?.toLowerCase().includes(query) ||
-      event.organizer?.firstName?.toLowerCase().includes(query) ||
-      event.organizer?.lastName?.toLowerCase().includes(query) ||
+      organizerName.includes(query) ||
       event.venue?.name?.toLowerCase().includes(query)
     );
   });
@@ -158,8 +231,10 @@ const EventManagementPage = () => {
                 <Table.HeaderCell>Actions</Table.HeaderCell>
               </Table.Header>
               <Table.Body>
-                {filteredEvents.map((event) => (
-                  <Table.Row key={event._id}>
+                {filteredEvents.map((event) => {
+                  const eventId = event._id || event.id;
+                  return (
+                  <Table.Row key={eventId}>
                     <Table.Cell>
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white">{event.title}</p>
@@ -170,7 +245,7 @@ const EventManagementPage = () => {
                       <div className="flex items-center gap-2">
                         <FiUser className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                         <span className="text-sm text-gray-900 dark:text-white">
-                          {event.organizer?.firstName} {event.organizer?.lastName}
+                          {getOrganizerName(event)}
                         </span>
                       </div>
                     </Table.Cell>
@@ -198,28 +273,25 @@ const EventManagementPage = () => {
                     </Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
-                        <Link to={`/events/${event._id}`}>
-                          <Button variant="ghost" size="sm" title="View">
-                            <FiEye className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Link to={`/events/${event._id}/edit`}>
-                          <Button variant="ghost" size="sm" title="Edit">
-                            <FiEdit className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteEventId(event._id)}
-                          title="Delete"
+                        <Link 
+                          to={`/events/${eventId}`}
+                          className="inline-flex items-center justify-center w-8 h-8 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                          title="View Event"
                         >
-                          <FiTrash2 className="w-4 h-4 text-red-600" />
-                        </Button>
+                          <FiEye className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => setDeleteEventId(eventId)}
+                          className="inline-flex items-center justify-center w-8 h-8 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                          title="Delete Event"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </Table.Cell>
                   </Table.Row>
-                ))}
+                  );
+                })}
               </Table.Body>
             </Table>
           </Card>

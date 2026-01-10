@@ -17,72 +17,101 @@ const PaymentMonitoringPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('all');
 
-  const { data, isLoading, error } = useQuery({
+  const { data: purchasesData, isLoading, error } = useQuery({
     queryKey: ['adminPurchases', filter, searchQuery, dateRange],
-    queryFn: () => adminApi.getPurchases({ 
-      status: filter !== 'all' ? filter : undefined,
-      search: searchQuery || undefined,
-      dateRange: dateRange !== 'all' ? dateRange : undefined
-    }),
+    queryFn: async () => {
+      const response = await adminApi.getPurchases({ 
+        status: filter !== 'all' ? filter : undefined,
+        search: searchQuery || undefined,
+        dateRange: dateRange !== 'all' ? dateRange : undefined
+      });
+      return response.data;
+    },
   });
 
-  // Process purchases data
+  // Extract purchases - handle various response structures
   let purchases = [];
-  if (data) {
-    const responseData = data.data;
+  if (purchasesData) {
+    const responseData = purchasesData;
     if (responseData) {
-      if (responseData.data && Array.isArray(responseData.data)) {
+      // Handle { success: true, data: { purchases: [...] } }
+      if (responseData.success && responseData.data) {
+        if (Array.isArray(responseData.data)) {
+          purchases = responseData.data;
+        } else if (responseData.data.purchases && Array.isArray(responseData.data.purchases)) {
+          purchases = responseData.data.purchases;
+        } else if (responseData.data.data && Array.isArray(responseData.data.data)) {
+          purchases = responseData.data.data;
+        }
+      }
+      // Handle { success: true, data: [...] } directly
+      else if (responseData.data && Array.isArray(responseData.data)) {
         purchases = responseData.data;
-      } else if (Array.isArray(responseData)) {
+      }
+      // Handle { purchases: [...] }
+      else if (responseData.purchases && Array.isArray(responseData.purchases)) {
+        purchases = responseData.purchases;
+      }
+      // Handle direct array
+      else if (Array.isArray(responseData)) {
         purchases = responseData;
       }
     }
+  }
+
+  // Ensure purchases is always an array
+  if (!Array.isArray(purchases)) {
+    purchases = [];
   }
 
   // Filter by search
   const filteredPurchases = purchases.filter(purchase => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
+    const purchaseId = purchase._id || purchase.id;
     return (
-      purchase._id?.toLowerCase().includes(query) ||
+      purchaseId?.toLowerCase().includes(query) ||
+      purchase.transactionId?.toLowerCase().includes(query) ||
       purchase.event?.title?.toLowerCase().includes(query) ||
-      purchase.attendeeInfo?.email?.toLowerCase().includes(query)
+      purchase.attendeeInfo?.email?.toLowerCase().includes(query) ||
+      purchase.attendeeInfo?.firstName?.toLowerCase().includes(query) ||
+      purchase.attendeeInfo?.lastName?.toLowerCase().includes(query)
     );
   });
 
-  // Calculate statistics
+  // Calculate statistics from all purchases (before filtering)
   const totalRevenue = purchases
-    .filter(p => p.status === 'paid')
-    .reduce((sum, p) => sum + (p.totalAmount || 0), 0);
+    .filter(p => p.status === 'paid' || p.status === 'PAID')
+    .reduce((sum, p) => sum + (p.totalAmount || p.amount || 0), 0);
   
   const totalTransactions = purchases.length;
-  const successfulTransactions = purchases.filter(p => p.status === 'paid').length;
-  const failedTransactions = purchases.filter(p => p.status === 'failed').length;
+  const successfulTransactions = purchases.filter(p => p.status === 'paid' || p.status === 'PAID').length;
+  const failedTransactions = purchases.filter(p => p.status === 'failed' || p.status === 'FAILED').length;
 
   const stats = [
     {
       label: 'Total Revenue',
       value: formatCurrency(totalRevenue),
       icon: FiDollarSign,
-      color: 'from-green-500 to-green-600',
+      color: 'bg-green-500',
     },
     {
       label: 'Total Transactions',
       value: totalTransactions,
       icon: FiTrendingUp,
-      color: 'from-blue-500 to-blue-600',
+      color: 'bg-blue-500',
     },
     {
       label: 'Successful',
       value: successfulTransactions,
       icon: FiTrendingUp,
-      color: 'from-green-500 to-green-600',
+      color: 'bg-green-500',
     },
     {
       label: 'Failed',
       value: failedTransactions,
       icon: FiTrendingDown,
-      color: 'from-red-500 to-red-600',
+      color: 'bg-red-500',
     },
   ];
 
@@ -123,28 +152,24 @@ const PaymentMonitoringPage = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        {stats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.label} className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.label}</p>
-                  <p className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
                     {stat.value}
                   </p>
                 </div>
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
-                  <stat.icon className="w-5 h-5 text-white" />
+                <div className={`${stat.color} p-3 rounded-lg`}>
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
               </div>
             </Card>
-          </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Filters */}
@@ -201,11 +226,14 @@ const PaymentMonitoringPage = () => {
                 <Table.HeaderCell>Payment Method</Table.HeaderCell>
               </Table.Header>
               <Table.Body>
-                {filteredPurchases.map((purchase) => (
-                  <Table.Row key={purchase._id}>
+                {filteredPurchases.map((purchase) => {
+                  const purchaseId = purchase._id || purchase.id;
+                  const transactionId = purchase.transactionId || purchaseId;
+                  return (
+                  <Table.Row key={purchaseId}>
                     <Table.Cell>
                       <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
-                        #{purchase._id?.slice(-8)}
+                        #{transactionId?.slice(-8) || 'N/A'}
                       </span>
                     </Table.Cell>
                     <Table.Cell>
@@ -225,7 +253,7 @@ const PaymentMonitoringPage = () => {
                     </Table.Cell>
                     <Table.Cell>
                       <span className="font-semibold text-gray-900 dark:text-white">
-                        {formatCurrency(purchase.totalAmount || 0)}
+                        {formatCurrency(purchase.totalAmount || purchase.amount || 0)}
                       </span>
                     </Table.Cell>
                     <Table.Cell>
@@ -246,12 +274,13 @@ const PaymentMonitoringPage = () => {
                       </span>
                     </Table.Cell>
                     <Table.Cell>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {purchase.paymentMethod || 'eSewa'}
+                      <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                        {purchase.paymentMethod || purchase.paymentGateway || 'eSewa'}
                       </span>
                     </Table.Cell>
                   </Table.Row>
-                ))}
+                  );
+                })}
               </Table.Body>
             </Table>
           </Card>

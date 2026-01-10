@@ -23,7 +23,7 @@ const StaffLayout = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
-          <aside className="lg:w-64 flex-shrink-0">
+          <aside className="lg:w-64 flex-shrink-0 lg:sticky lg:top-8 lg:self-start">
             <nav className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;

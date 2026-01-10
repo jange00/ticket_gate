@@ -21,12 +21,15 @@ const RefundManagementPage = () => {
   const [selectedRefund, setSelectedRefund] = useState(null);
   const [actionType, setActionType] = useState(null);
 
-  const { data, isLoading, error } = useQuery({
+  const { data: refundsData, isLoading, error } = useQuery({
     queryKey: ['adminRefunds', filter, searchQuery],
-    queryFn: () => adminApi.getRefunds({ 
-      status: filter !== 'all' ? filter : undefined,
-      search: searchQuery || undefined
-    }),
+    queryFn: async () => {
+      const response = await adminApi.getRefunds({ 
+        status: filter !== 'all' ? filter : undefined,
+        search: searchQuery || undefined
+      });
+      return response.data;
+    },
   });
 
   const processMutation = useMutation({
@@ -42,26 +45,50 @@ const RefundManagementPage = () => {
     },
   });
 
-  // Process refunds data
+  // Extract refunds - handle various response structures
   let refunds = [];
-  if (data) {
-    const responseData = data.data;
+  if (refundsData) {
+    const responseData = refundsData;
     if (responseData) {
-      if (responseData.data && Array.isArray(responseData.data)) {
+      // Handle { success: true, data: { refunds: [...] } }
+      if (responseData.success && responseData.data) {
+        if (Array.isArray(responseData.data)) {
+          refunds = responseData.data;
+        } else if (responseData.data.refunds && Array.isArray(responseData.data.refunds)) {
+          refunds = responseData.data.refunds;
+        } else if (responseData.data.data && Array.isArray(responseData.data.data)) {
+          refunds = responseData.data.data;
+        }
+      }
+      // Handle { success: true, data: [...] } directly
+      else if (responseData.data && Array.isArray(responseData.data)) {
         refunds = responseData.data;
-      } else if (Array.isArray(responseData)) {
+      }
+      // Handle { refunds: [...] }
+      else if (responseData.refunds && Array.isArray(responseData.refunds)) {
+        refunds = responseData.refunds;
+      }
+      // Handle direct array
+      else if (Array.isArray(responseData)) {
         refunds = responseData;
       }
     }
+  }
+
+  // Ensure refunds is always an array
+  if (!Array.isArray(refunds)) {
+    refunds = [];
   }
 
   // Filter by search
   const filteredRefunds = refunds.filter(refund => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
+    const refundId = refund._id || refund.id;
     return (
-      refund._id?.toLowerCase().includes(query) ||
+      refundId?.toLowerCase().includes(query) ||
       refund.event?.title?.toLowerCase().includes(query) ||
+      refund.purchase?.event?.title?.toLowerCase().includes(query) ||
       refund.purchase?.attendeeInfo?.firstName?.toLowerCase().includes(query) ||
       refund.purchase?.attendeeInfo?.lastName?.toLowerCase().includes(query)
     );
@@ -69,8 +96,9 @@ const RefundManagementPage = () => {
 
   const handleProcess = () => {
     if (selectedRefund && actionType) {
+      const refundId = selectedRefund._id || selectedRefund.id;
       processMutation.mutate({
-        id: selectedRefund._id,
+        id: refundId,
         action: actionType,
       });
     }
@@ -163,11 +191,13 @@ const RefundManagementPage = () => {
                 <Table.HeaderCell>Actions</Table.HeaderCell>
               </Table.Header>
               <Table.Body>
-                {filteredRefunds.map((refund) => (
-                  <Table.Row key={refund._id}>
+                {filteredRefunds.map((refund) => {
+                  const refundId = refund._id || refund.id;
+                  return (
+                  <Table.Row key={refundId}>
                     <Table.Cell>
                       <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
-                        #{refund._id?.slice(-8)}
+                        #{refundId?.slice(-8) || 'N/A'}
                       </span>
                     </Table.Cell>
                     <Table.Cell>
@@ -218,7 +248,8 @@ const RefundManagementPage = () => {
                               setSelectedRefund(refund);
                               setActionType('approve');
                             }}
-                            className="text-green-600 hover:text-green-700"
+                            className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                            title="Approve"
                           >
                             <FiCheckCircle className="w-4 h-4" />
                           </Button>
@@ -229,7 +260,8 @@ const RefundManagementPage = () => {
                               setSelectedRefund(refund);
                               setActionType('reject');
                             }}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                            title="Reject"
                           >
                             <FiXCircle className="w-4 h-4" />
                           </Button>
@@ -237,7 +269,8 @@ const RefundManagementPage = () => {
                       )}
                     </Table.Cell>
                   </Table.Row>
-                ))}
+                  );
+                })}
               </Table.Body>
             </Table>
           </Card>
