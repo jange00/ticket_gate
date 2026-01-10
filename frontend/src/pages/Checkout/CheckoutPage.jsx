@@ -58,29 +58,22 @@ const CheckoutPage = () => {
       console.log('Final paymentUrl:', paymentUrl);
 
       // If we have a payment URL, redirect to eSewa payment page
+      // eSewa payment gateway requires POST submission, not GET redirect
       if (paymentUrl) {
         toast.success('Redirecting to payment...');
         
-        // Parse the URL to extract base URL and parameters
         try {
           const url = new URL(paymentUrl);
-          
-          // eSewa endpoint URL (use the path from the paymentUrl but ensure correct endpoint)
-          // The backend might return the full URL, but we need to use the form endpoint
-          const esewaEndpoint = url.pathname.includes('/form') 
-            ? `${url.protocol}//${url.host}${url.pathname}`
-            : `${url.protocol}//${url.host}/api/epay/main/v2/form`;
-          
+          const baseUrl = `${url.protocol}//${url.host}${url.pathname}`;
           const params = new URLSearchParams(url.search);
           
-          // Create a form element for POST submission
+          // Create a form element for POST submission (eSewa requires POST)
           const form = document.createElement('form');
           form.method = 'POST';
-          form.action = esewaEndpoint;
+          form.action = baseUrl;
           form.style.display = 'none';
-          form.target = '_self'; // Submit in the same window
           
-          // Add all query parameters as hidden input fields
+          // Add all query parameters as hidden input fields for POST submission
           params.forEach((value, key) => {
             const input = document.createElement('input');
             input.type = 'hidden';
@@ -91,14 +84,9 @@ const CheckoutPage = () => {
           
           // Append form to body and submit
           document.body.appendChild(form);
-          
-          // Small delay to ensure form is in DOM
-          setTimeout(() => {
-            form.submit();
-          }, 100);
+          form.submit();
         } catch (error) {
-          // Fallback: if URL parsing fails, log error
-          console.error('Error parsing payment URL:', error);
+          console.error('Error processing payment URL:', error);
           console.error('Payment URL:', paymentUrl);
           toast.error('Error processing payment URL. Please try again.');
         }
