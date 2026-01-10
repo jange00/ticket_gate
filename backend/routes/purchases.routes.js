@@ -53,6 +53,13 @@ router.get('/transaction/:transactionId', authenticate, apiLimiter, purchasesCon
  */
 router.get('/:id/tickets', authenticate, apiLimiter, purchasesController.getPurchaseTickets);
 
+/**
+ * @route   GET /api/purchases/status/:transactionId
+ * @desc    Check payment status from eSewa
+ * @access  Private
+ */
+router.get('/status/:transactionId', authenticate, apiLimiter, purchasesController.checkPaymentStatus);
+
 module.exports = router;
 
 

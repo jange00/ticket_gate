@@ -89,6 +89,8 @@ const createPurchase = async (req, res, next) => {
     });
 
     // Generate payment URL
+    // IMPORTANT: success_url and failure_url should point to backend webhook endpoint
+    // eSewa will redirect user's browser to these URLs with Base64-encoded payment data
     const paymentRequestData = {
       amount: subtotal,
       taxAmount: tax,
@@ -96,8 +98,8 @@ const createPurchase = async (req, res, next) => {
       totalAmount: totalAmount,
       productId: purchase.transactionId,
       productName: `Tickets for ${event.title}`,
-      successUrl: `${config.FRONTEND_URL}/purchase/success?transactionId=${purchase.transactionId}`,
-      failureUrl: `${config.FRONTEND_URL}/purchase/failure?transactionId=${purchase.transactionId}`
+      successUrl: `${config.API_URL}/webhooks/esewa`,
+      failureUrl: `${config.API_URL}/webhooks/esewa`
     };
 
     logger.info('=== Purchase Payment URL Generation ===');
@@ -273,12 +275,52 @@ const getPurchaseTickets = async (req, res, next) => {
   }
 };
 
+/**
+ * Check payment status from eSewa API
+ */
+const checkPaymentStatus = async (req, res, next) => {
+  try {
+    const { transactionId } = req.params;
+    const userId = req.user.userId;
+
+    const purchase = await Purchase.findOne({ transactionId });
+    if (!purchase) {
+      throw new AppError(ERROR_MESSAGES.NOT_FOUND, HTTP_STATUS.NOT_FOUND);
+    }
+
+    // Check ownership or admin
+    if (purchase.userId.toString() !== userId && req.user.role !== 'admin') {
+      throw new AppError(ERROR_MESSAGES.FORBIDDEN, HTTP_STATUS.FORBIDDEN);
+    }
+
+    const { checkPaymentStatus: checkEsewaStatus } = require('../services/payment.service');
+    const statusResult = await checkEsewaStatus(purchase.transactionId, purchase.totalAmount);
+
+    if (statusResult.success && statusResult.status === 'COMPLETE' && purchase.status !== PURCHASE_STATUS.PAID) {
+      // Payment was successful, update purchase status
+      // Note: This is a fallback. Ideally webhook should handle this
+      logger.warn('Payment status check found completed payment that was not processed', {
+        transactionId,
+        purchaseId: purchase._id
+      });
+    }
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: statusResult
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createPurchase,
   getMyPurchases,
   getPurchaseById,
   getPurchaseByTransactionId,
-  getPurchaseTickets
+  getPurchaseTickets,
+  checkPaymentStatus
 };
 
 

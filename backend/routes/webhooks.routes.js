@@ -13,40 +13,53 @@ const { AppError } = require('../middleware/errorHandler.middleware');
 const logger = require('../services/logging.service');
 
 /**
- * @route   POST /api/webhooks/esewa
- * @desc    eSewa payment webhook
+ * @route   GET /api/webhooks/esewa
+ * @desc    eSewa payment callback (redirected from eSewa after payment)
  * @access  Public (verification via signature)
+ * 
+ * Note: eSewa redirects to success_url/failure_url with Base64-encoded JSON in query parameter
  */
-router.post('/esewa', async (req, res, next) => {
+router.get('/esewa', async (req, res, next) => {
   try {
-    const paymentData = req.body;
+    // eSewa sends response as Base64-encoded JSON in 'data' query parameter
+    const base64Data = req.query.data;
+    
+    if (!base64Data) {
+      logger.error('eSewa callback missing data parameter', req.query);
+      return res.status(HTTP_STATUS.BAD_REQUEST).send('Missing payment data');
+    }
+
+    // Decode Base64 to get JSON string
+    let paymentData;
+    try {
+      const decodedData = Buffer.from(base64Data, 'base64').toString('utf-8');
+      paymentData = JSON.parse(decodedData);
+      logger.info('eSewa callback decoded:', paymentData);
+    } catch (decodeError) {
+      logger.error('Failed to decode eSewa callback data', { error: decodeError.message, base64Data });
+      return res.status(HTTP_STATUS.BAD_REQUEST).send('Invalid payment data format');
+    }
 
     // Verify payment signature
     const verification = verifyEsewaPayment(paymentData);
 
     if (!verification.valid) {
       logger.error('eSewa payment verification failed', paymentData);
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        error: 'Payment verification failed'
-      });
+      return res.status(HTTP_STATUS.BAD_REQUEST).send('Payment verification failed');
     }
 
-    // Find purchase by transaction ID
+    // Find purchase by transaction ID (transaction_uuid)
     const purchase = await Purchase.findOne({
       transactionId: verification.transactionId
     }).populate('userId').populate('eventId');
 
     if (!purchase) {
       logger.error('Purchase not found for transaction', verification.transactionId);
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        success: false,
-        error: 'Purchase not found'
-      });
+      return res.status(HTTP_STATUS.NOT_FOUND).send('Purchase not found');
     }
 
     // Update purchase status
-    if (paymentData.status === 'success' || paymentData.status === 'COMPLETE') {
+    if (verification.status === 'COMPLETE') {
       // Prevent duplicate processing
       if (purchase.status === PURCHASE_STATUS.PAID) {
         logger.warn('Purchase already processed', { transactionId: verification.transactionId });
@@ -58,8 +71,8 @@ router.post('/esewa', async (req, res, next) => {
 
       // Payment confirmed - update purchase status
       purchase.status = PURCHASE_STATUS.PAID;
-      purchase.paymentId = verification.refId;
-      purchase.paymentReferenceId = verification.refId;
+      purchase.paymentId = verification.transactionCode;
+      purchase.paymentReferenceId = verification.transactionCode;
       purchase.paymentDate = new Date();
       purchase.esewaResponse = paymentData;
       await purchase.save();
@@ -156,27 +169,31 @@ router.post('/esewa', async (req, res, next) => {
         transactionId: verification.transactionId,
         purchaseId: purchase._id
       });
+
+      // Redirect to frontend success page
+      const frontendUrl = require('../config/env').FRONTEND_URL;
+      return res.redirect(`${frontendUrl}/purchase/success?transactionId=${purchase.transactionId}`);
     } else {
-      // Payment failed
-      purchase.status = PURCHASE_STATUS.FAILED;
+      // Payment failed or pending
+      purchase.status = verification.status === 'PENDING' ? PURCHASE_STATUS.PENDING : PURCHASE_STATUS.FAILED;
       purchase.esewaResponse = paymentData;
       await purchase.save();
 
       await ActivityLog.create({
         userId: purchase.userId._id,
         activityType: ACTIVITY_TYPES.PAYMENT_FAILED,
-        description: `Payment failed: ${purchase.transactionId}`,
+        description: `Payment ${verification.status}: ${purchase.transactionId}`,
         metadata: {
           purchaseId: purchase._id,
-          transactionId: verification.transactionId
+          transactionId: verification.transactionId,
+          status: verification.status
         }
       });
-    }
 
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      message: 'Webhook processed successfully'
-    });
+      // Redirect to frontend failure page
+      const frontendUrl = require('../config/env').FRONTEND_URL;
+      return res.redirect(`${frontendUrl}/purchase/failure?transactionId=${purchase.transactionId}`);
+    }
   } catch (error) {
     logger.error('Webhook processing error:', error);
     next(error);

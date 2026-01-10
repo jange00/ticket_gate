@@ -29,32 +29,37 @@ const generateEsewaPaymentUrl = (paymentData) => {
 
     // Calculate total
     const calculatedTotal = amount + taxAmount + serviceCharge + deliveryCharge;
+    const finalTotalAmount = totalAmount || calculatedTotal;
+    const finalTaxAmount = taxAmount || 0;
+    const finalProductServiceCharge = productServiceCharge || serviceCharge || 0;
+    const finalProductDeliveryCharge = productDeliveryCharge || deliveryCharge || 0;
+    const transactionUuid = productId || generateTransactionId();
     
     logger.info('Calculated values:', {
       amount,
-      taxAmount,
-      serviceCharge,
-      deliveryCharge,
+      taxAmount: finalTaxAmount,
+      serviceCharge: finalProductServiceCharge,
+      deliveryCharge: finalProductDeliveryCharge,
       calculatedTotal,
-      totalAmount: totalAmount || calculatedTotal
+      totalAmount: finalTotalAmount,
+      transactionUuid
     });
     
-    // Build payment parameters
-    // CRITICAL: su and fu URLs MUST be URL-encoded before adding to params
-    // URLSearchParams.append() encodes values, but eSewa requires explicit encoding
+    // Build payment parameters (using eSewa documentation parameter names)
     const finalSuccessUrl = successUrl || `${esewaConfig.baseUrl}/success`;
     const finalFailureUrl = failureUrl || `${esewaConfig.baseUrl}/failure`;
     
     const paymentParams = {
-      amt: (totalAmount || calculatedTotal).toString(), // Convert to string
-      psc: (productServiceCharge || serviceCharge).toString(),
-      pdc: (productDeliveryCharge || deliveryCharge).toString(),
-      txAmt: '0', // Tax amount (required by eSewa, usually 0)
-      tAmt: (totalAmount || calculatedTotal).toString(), // Total amount
-      pid: productId || generateTransactionId(),
-      scd: esewaConfig.merchantId,
-      su: encodeURIComponent(finalSuccessUrl), // CRITICAL: Must be URL-encoded!
-      fu: encodeURIComponent(finalFailureUrl)  // CRITICAL: Must be URL-encoded!
+      amount: amount.toString(),
+      tax_amount: finalTaxAmount.toString(),
+      total_amount: finalTotalAmount.toString(),
+      transaction_uuid: transactionUuid,
+      product_code: esewaConfig.merchantId,
+      product_service_charge: finalProductServiceCharge.toString(),
+      product_delivery_charge: finalProductDeliveryCharge.toString(),
+      success_url: finalSuccessUrl,
+      failure_url: finalFailureUrl,
+      signed_field_names: 'total_amount,transaction_uuid,product_code'
     };
 
     logger.info('Payment parameters built:', JSON.stringify(paymentParams, null, 2));
@@ -66,21 +71,21 @@ const generateEsewaPaymentUrl = (paymentData) => {
       secretKeySet: !!esewaConfig.secretKey
     });
 
-    // Generate signature
-    const sortedKeys = Object.keys(paymentParams).sort();
-    const message = sortedKeys
-      .map(key => `${key}=${paymentParams[key]}`)
+    // Generate signature (ONLY these 3 fields in exact order as per eSewa documentation)
+    const signatureFields = ['total_amount', 'transaction_uuid', 'product_code'];
+    const signatureMessage = signatureFields
+      .map(field => `${field}=${paymentParams[field]}`)
       .join(',');
     
     logger.info('Signature generation:', {
-      sortedKeys,
-      message,
+      signatureFields,
+      signatureMessage,
       secretKey: esewaConfig.secretKey ? `${esewaConfig.secretKey.substring(0, 5)}...` : 'NOT SET'
     });
     
     const signature = crypto
       .createHmac('sha256', esewaConfig.secretKey)
-      .update(message)
+      .update(signatureMessage)
       .digest('base64');
 
     logger.info('Signature generated:', {
@@ -88,18 +93,16 @@ const generateEsewaPaymentUrl = (paymentData) => {
       signatureLength: signature.length
     });
 
-    // Build payment URL manually to avoid double-encoding
-    // URLSearchParams would double-encode pre-encoded URLs
-    // Build query string manually: keys don't need encoding, values do (except su/fu which are pre-encoded)
+    // Add signature to params
+    paymentParams.signature = signature;
+
+    // Build form data (eSewa expects form submission, but we'll return URL with query params)
+    // Note: eSewa documentation shows HTML form, but query params in URL also work
     const queryParts = [];
-    
-    // Add all parameters
     Object.keys(paymentParams).forEach(key => {
       const value = paymentParams[key];
-      // Keys are safe strings, values need encoding (but su/fu are already encoded)
-      queryParts.push(`${key}=${value}`); // su and fu are already encoded, others are safe strings
+      queryParts.push(`${key}=${encodeURIComponent(value)}`);
     });
-    queryParts.push(`signature=${encodeURIComponent(signature)}`); // Encode signature (base64 may have special chars)
     
     // Build final URL
     const queryString = queryParts.join('&');
@@ -115,17 +118,17 @@ const generateEsewaPaymentUrl = (paymentData) => {
       fullUrl: paymentUrl
     });
     logger.info('Summary:', {
-      productId: paymentParams.pid,
-      amount: paymentParams.tAmt,
-      merchantId: paymentParams.scd,
+      transactionUuid: paymentParams.transaction_uuid,
+      totalAmount: paymentParams.total_amount,
+      productCode: paymentParams.product_code,
       endpoint: esewaConfig.apiUrl,
-      successUrl: paymentParams.su,
-      failureUrl: paymentParams.fu
+      successUrl: paymentParams.success_url,
+      failureUrl: paymentParams.failure_url
     });
 
     return {
       paymentUrl: paymentUrl,
-      transactionId: paymentParams.pid,
+      transactionId: paymentParams.transaction_uuid,
       signature
     };
   } catch (error) {
@@ -142,34 +145,43 @@ const generateEsewaPaymentUrl = (paymentData) => {
 
 /**
  * Verify eSewa payment response
+ * Response format from eSewa documentation:
+ * {
+ *   "transaction_code": "000AWEO",
+ *   "status": "COMPLETE",
+ *   "total_amount": 1000.0,
+ *   "transaction_uuid": "250610-162413",
+ *   "product_code": "EPAYTEST",
+ *   "signed_field_names": "transaction_code,status,total_amount,transaction_uuid,product_code,signed_field_names",
+ *   "signature": "..."
+ * }
  */
 const verifyEsewaPayment = (paymentResponse) => {
   try {
     const {
-      amount,
-      refId,
-      transactionId,
-      transactionUUID,
+      transaction_code,
+      status,
+      total_amount,
+      transaction_uuid,
+      product_code,
+      signed_field_names,
       signature
     } = paymentResponse;
 
-    // Build verification data
-    const verificationData = {
-      amount,
-      refId,
-      transactionId,
-      transactionUUID
-    };
-
-    // Generate signature
-    const message = Object.keys(verificationData)
-      .sort()
-      .map(key => `${key}=${verificationData[key]}`)
-      .join(',');
+    // Build verification data (fields must match signed_field_names in order)
+    // According to documentation: transaction_code,status,total_amount,transaction_uuid,product_code,signed_field_names
+    const verificationMessage = [
+      `transaction_code=${transaction_code}`,
+      `status=${status}`,
+      `total_amount=${total_amount}`,
+      `transaction_uuid=${transaction_uuid}`,
+      `product_code=${product_code}`,
+      `signed_field_names=${signed_field_names}`
+    ].join(',');
     
     const calculatedSignature = crypto
       .createHmac('sha256', esewaConfig.secretKey)
-      .update(message)
+      .update(verificationMessage)
       .digest('base64');
 
     // Verify signature
@@ -177,28 +189,70 @@ const verifyEsewaPayment = (paymentResponse) => {
 
     if (isValid) {
       logger.info('eSewa payment verified successfully', {
-        transactionId,
-        refId,
-        amount
+        transaction_uuid,
+        transaction_code,
+        status,
+        total_amount
       });
     } else {
       logger.warn('eSewa payment verification failed', {
-        transactionId,
-        refId
+        transaction_uuid,
+        expectedSignature: calculatedSignature,
+        receivedSignature: signature
       });
     }
 
     return {
       valid: isValid,
-      transactionId,
-      refId,
-      amount,
-      transactionUUID
+      transactionId: transaction_uuid,
+      transactionCode: transaction_code,
+      refId: transaction_code,
+      status: status,
+      totalAmount: total_amount,
+      productCode: product_code
     };
   } catch (error) {
     logger.error('eSewa payment verification failed:', error);
     return {
       valid: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Check payment status from eSewa API
+ * Used when no response received within 5 minutes
+ */
+const checkPaymentStatus = async (transactionUuid, totalAmount) => {
+  try {
+    const statusUrl = `${esewaConfig.baseUrl}/api/epay/transaction/status/`;
+    const params = new URLSearchParams({
+      product_code: esewaConfig.merchantId,
+      total_amount: totalAmount.toString(),
+      transaction_uuid: transactionUuid
+    });
+
+    const response = await axios.get(`${statusUrl}?${params.toString()}`);
+    
+    logger.info('Payment status checked', {
+      transactionUuid,
+      status: response.data.status,
+      refId: response.data.ref_id
+    });
+
+    return {
+      success: true,
+      status: response.data.status,
+      refId: response.data.ref_id,
+      productCode: response.data.product_code,
+      transactionUuid: response.data.transaction_uuid,
+      totalAmount: response.data.total_amount
+    };
+  } catch (error) {
+    logger.error('Payment status check failed:', error);
+    return {
+      success: false,
       error: error.message
     };
   }
@@ -230,6 +284,7 @@ const processRefund = async (refundData) => {
 module.exports = {
   generateEsewaPaymentUrl,
   verifyEsewaPayment,
+  checkPaymentStatus,
   processRefund
 };
 
