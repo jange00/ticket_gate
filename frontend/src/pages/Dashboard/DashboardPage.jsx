@@ -29,21 +29,6 @@ const DashboardPage = () => {
           <p className="text-3xl font-bold text-orange-600">NPR 0</p>
         </Card>
       </div>
-      
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="flex flex-wrap gap-4">
-          <Link to="/events">
-            <Button>Browse Events</Button>
-          </Link>
-          <Link to="/dashboard/tickets">
-            <Button variant="outline">My Tickets</Button>
-          </Link>
-          <Link to="/dashboard/settings">
-            <Button variant="outline">Settings</Button>
-          </Link>
-        </div>
-      </Card>
     </div>
   );
 };

@@ -129,20 +129,15 @@ const MyEventsPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="p-12 text-center">
-            <p className="text-red-600 mb-4">Error loading events</p>
-            <p className="text-gray-600 text-sm">{error.message}</p>
-          </Card>
-        </div>
-      </div>
+      <Card className="p-12 text-center">
+        <p className="text-red-600 mb-4">Error loading events</p>
+        <p className="text-gray-600 text-sm">{error.message}</p>
+      </Card>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -351,7 +346,6 @@ const MyEventsPage = () => {
             </div>
           </Modal>
         )}
-      </div>
     </div>
   );
 };

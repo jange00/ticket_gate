@@ -14,7 +14,7 @@ const StaffLayout = () => {
     { path: '/staff/dashboard', label: 'Dashboard', icon: HomeIcon },
     { path: '/checkin', label: 'Check-In', icon: QrCodeIcon },
     { path: '/staff/checkins', label: 'Check-In History', icon: TicketIcon },
-    { path: '/dashboard/settings', label: 'Settings', icon: Cog6ToothIcon },
+    { path: '/staff/settings', label: 'Settings', icon: Cog6ToothIcon },
   ];
   
   return (

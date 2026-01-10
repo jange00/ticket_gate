@@ -142,6 +142,7 @@ const AppRouter = () => {
           <Route path="dashboard" element={<StaffDashboardPage />} />
           <Route path="checkins" element={<CheckInHistoryPage />} />
           <Route path="checkins/:eventId" element={<EventCheckInsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* Admin Routes */}

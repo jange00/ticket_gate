@@ -63,19 +63,14 @@ const StaffDashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="space-y-6">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text text-transparent mb-2">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Staff Portal
           </h1>
-          <p className="text-gray-600 text-lg">Manage event check-ins and attendee verification</p>
-        </motion.div>
+          <p className="text-gray-600">Manage event check-ins and attendee verification</p>
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -88,11 +83,11 @@ const StaffDashboardPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <Card className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.label}</p>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      <p className="text-sm font-medium text-gray-600 mb-1">{stat.label}</p>
+                      <p className="text-3xl font-bold text-gray-900">
                         {stat.value}
                       </p>
                     </div>
@@ -106,72 +101,23 @@ const StaffDashboardPage = () => {
           })}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="lg:col-span-1"
-          >
-            <Card className="p-6 h-full">
-              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></span>
-                Quick Actions
-              </h2>
-              <div className="space-y-3">
-                <Link to="/checkin">
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button className="w-full" variant="primary">
-                      <div className="flex items-center justify-between w-full">
-                        <span>Start Check-in</span>
-                        <FiMaximize2 className="w-5 h-5" />
-                      </div>
-                    </Button>
-                  </motion.div>
-                </Link>
-                <Link to="/staff/checkins">
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button className="w-full" variant="outline">
-                      <div className="flex items-center justify-between w-full">
-                        <span>Check-in History</span>
-                        <FiArrowRight className="w-5 h-5" />
-                      </div>
-                    </Button>
-                  </motion.div>
-                </Link>
-                <Link to="/events">
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button className="w-full" variant="outline">
-                      <div className="flex items-center justify-between w-full">
-                        <span>View Events</span>
-                        <FiArrowRight className="w-5 h-5" />
-                      </div>
-                    </Button>
-                  </motion.div>
-                </Link>
-              </div>
-            </Card>
-          </motion.div>
-
+        <div>
           {/* Today's Events */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-2"
           >
             <Card className="p-6 h-full">
-              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></span>
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-6">
                 Today's Events
               </h2>
               {todayEvents.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FiCalendar className="w-8 h-8 text-gray-400" />
+                  <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FiCalendar className="w-8 h-8 text-gray-500" />
                   </div>
-                  <p className="text-gray-500 mb-2">No events scheduled for today</p>
+                  <p className="text-gray-600 mb-2">No events scheduled for today</p>
                   <Link to="/events">
                     <Button variant="outline" size="sm">
                       View All Events
@@ -186,7 +132,7 @@ const StaffDashboardPage = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.5 + index * 0.1 }}
-                      className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
+                      className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-all"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -212,7 +158,6 @@ const StaffDashboardPage = () => {
             </Card>
           </motion.div>
         </div>
-      </div>
     </div>
   );
 };
