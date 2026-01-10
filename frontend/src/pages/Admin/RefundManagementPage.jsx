@@ -90,73 +90,67 @@ const RefundManagementPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="p-12 text-center">
-            <p className="text-red-600 mb-4">Error loading refunds</p>
-            <p className="text-gray-600 text-sm">{error.message}</p>
-          </Card>
-        </div>
-      </div>
+      <Card className="p-12 text-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <p className="text-red-600 dark:text-red-400 mb-4">Error loading refunds</p>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">{error.message}</p>
+      </Card>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Refund Management</h1>
-          <p className="text-gray-600 text-lg">Manage all refund requests across the platform</p>
-        </motion.div>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Refund Management</h1>
+        <p className="text-gray-600 dark:text-gray-400">Manage all refund requests across the platform</p>
+      </motion.div>
 
-        {/* Filters and Search */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6 flex flex-col sm:flex-row gap-4"
-        >
-          <div className="flex-1 relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <FiSearch className="w-5 h-5" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search by ID, event, customer..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20"
-            />
+      {/* Filters and Search */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex flex-col sm:flex-row gap-4"
+      >
+        <div className="flex-1 relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+            <FiSearch className="w-5 h-5" />
           </div>
-          <div className="w-48">
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20"
-            >
-              {filterOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </motion.div>
+          <input
+            type="text"
+            placeholder="Search by ID, event, customer..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-orange-500 dark:focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+          />
+        </div>
+        <div className="w-48">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-orange-500 dark:focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+          >
+            {filterOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </motion.div>
 
-        {filteredRefunds.length === 0 ? (
-          <Card className="p-12 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FiDollarSign className="w-10 h-10 text-gray-400" />
-            </div>
-            <p className="text-gray-600 mb-4 text-lg">No refund requests found</p>
-          </Card>
-        ) : (
-          <Card className="overflow-hidden">
+      {filteredRefunds.length === 0 ? (
+        <Card className="p-12 text-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FiDollarSign className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+          </div>
+          <p className="text-gray-600 dark:text-gray-400 mb-4 text-lg">No refund requests found</p>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <Table>
               <Table.Header>
                 <Table.HeaderCell>Request ID</Table.HeaderCell>
@@ -172,25 +166,27 @@ const RefundManagementPage = () => {
                 {filteredRefunds.map((refund) => (
                   <Table.Row key={refund._id}>
                     <Table.Cell>
-                      <span className="font-mono text-sm text-gray-600">
+                      <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
                         #{refund._id?.slice(-8)}
                       </span>
                     </Table.Cell>
                     <Table.Cell>
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {refund.event?.title || refund.purchase?.event?.title || 'Event'}
                       </p>
                     </Table.Cell>
                     <Table.Cell>
-                      {refund.purchase?.attendeeInfo?.firstName} {refund.purchase?.attendeeInfo?.lastName}
+                      <span className="text-gray-900 dark:text-white">
+                        {refund.purchase?.attendeeInfo?.firstName} {refund.purchase?.attendeeInfo?.lastName}
+                      </span>
                     </Table.Cell>
                     <Table.Cell>
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-gray-900 dark:text-white">
                         {formatCurrency(refund.amount || 0)}
                       </span>
                     </Table.Cell>
                     <Table.Cell>
-                      <p className="text-sm text-gray-600 max-w-xs truncate">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
                         {refund.reason || 'N/A'}
                       </p>
                     </Table.Cell>
@@ -207,7 +203,7 @@ const RefundManagementPage = () => {
                       </Badge>
                     </Table.Cell>
                     <Table.Cell>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <FiClock className="w-4 h-4" />
                         {refund.createdAt && format(new Date(refund.createdAt), 'MMM dd, yyyy')}
                       </div>
@@ -258,13 +254,13 @@ const RefundManagementPage = () => {
             title={actionType === 'approve' ? 'Approve Refund' : 'Reject Refund'}
           >
             <div className="space-y-4">
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 Are you sure you want to {actionType} this refund request?
               </p>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Event: {selectedRefund.event?.title || 'N/A'}</p>
-                <p className="text-sm text-gray-600">Amount: {formatCurrency(selectedRefund.amount || 0)}</p>
-                <p className="text-sm text-gray-600">Reason: {selectedRefund.reason || 'N/A'}</p>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Event: {selectedRefund.event?.title || 'N/A'}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Amount: {formatCurrency(selectedRefund.amount || 0)}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Reason: {selectedRefund.reason || 'N/A'}</p>
               </div>
               <div className="flex gap-3 justify-end">
                 <Button
@@ -287,7 +283,6 @@ const RefundManagementPage = () => {
             </div>
           </Modal>
         )}
-      </div>
     </div>
   );
 };

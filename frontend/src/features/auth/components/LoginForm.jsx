@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiClock } from 'react-icons/fi';
 import { emailSchema } from '../../../utils/validators';
 
 const loginSchema = Yup.object({
@@ -23,8 +23,57 @@ const LoginForm = () => {
   const location = useLocation();
   const [mfaRequired, setMfaRequired] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [lockoutTimeLeft, setLockoutTimeLeft] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
   
   const from = location.state?.from?.pathname || '/dashboard';
+
+  // Check for existing lockout on component mount
+  useEffect(() => {
+    const lockoutEndTime = localStorage.getItem('accountLockoutEndTime');
+    if (lockoutEndTime) {
+      const endTime = parseInt(lockoutEndTime);
+      const now = Date.now();
+      if (endTime > now) {
+        setIsLocked(true);
+        setLockoutTimeLeft(Math.ceil((endTime - now) / 1000));
+      } else {
+        localStorage.removeItem('accountLockoutEndTime');
+      }
+    }
+  }, []);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!isLocked || lockoutTimeLeft === null) return;
+
+    if (lockoutTimeLeft <= 0) {
+      setIsLocked(false);
+      setLockoutTimeLeft(null);
+      localStorage.removeItem('accountLockoutEndTime');
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setLockoutTimeLeft((prev) => {
+        if (prev <= 1) {
+          setIsLocked(false);
+          localStorage.removeItem('accountLockoutEndTime');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isLocked, lockoutTimeLeft]);
+
+  // Format time remaining as MM:SS
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
   
   return (
     <Formik
@@ -56,7 +105,19 @@ const LoginForm = () => {
           if (error.response?.data?.mfaRequired) {
             setMfaRequired(true);
           } else {
-            setFieldError('password', error.response?.data?.message || 'Invalid credentials');
+            const errorMessage = error.response?.data?.message || 'Invalid credentials';
+            
+            // Check if account is locked (403 status)
+            if (error.response?.status === 403 && errorMessage.toLowerCase().includes('locked')) {
+              // Set lockout for 15 minutes (900 seconds)
+              const lockoutDuration = 15 * 60; // 15 minutes in seconds
+              const lockoutEndTime = Date.now() + (lockoutDuration * 1000);
+              localStorage.setItem('accountLockoutEndTime', lockoutEndTime.toString());
+              setIsLocked(true);
+              setLockoutTimeLeft(lockoutDuration);
+            }
+            
+            setFieldError('password', errorMessage);
           }
         }
       }}
@@ -127,7 +188,29 @@ const LoginForm = () => {
               />
             </div>
             {errors.password && touched.password && (
-              <p className="mt-2 text-sm text-red-500">{errors.password}</p>
+              <div className="mt-2">
+                <p className="text-sm text-red-500">{errors.password}</p>
+                {/* Lockout Timer */}
+                {isLocked && lockoutTimeLeft !== null && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2 text-red-400">
+                      <FiClock className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        Account locked. Please try again in:
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-red-400 font-mono">
+                        {formatTime(lockoutTimeLeft)}
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             )}
           </motion.div>
           
@@ -173,12 +256,17 @@ const LoginForm = () => {
           >
             <motion.button
               type="submit"
-              disabled={isLoggingIn}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              disabled={isLoggingIn || isLocked}
+              whileHover={!isLocked ? { scale: 1.02 } : {}}
+              whileTap={!isLocked ? { scale: 0.98 } : {}}
                   className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-semibold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
             >
-              {isLoggingIn ? 'Logging in...' : 'Login'}
+              {isLocked 
+                ? `Locked (${formatTime(lockoutTimeLeft || 0)})` 
+                : isLoggingIn 
+                  ? 'Logging in...' 
+                  : 'Login'
+              }
             </motion.button>
           </motion.div>
           

@@ -90,70 +90,64 @@ const EventManagementPage = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card className="p-12 text-center">
-            <p className="text-red-600 mb-4">Error loading events</p>
-            <p className="text-gray-600 text-sm">{error.message}</p>
-          </Card>
-        </div>
-      </div>
+      <Card className="p-12 text-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <p className="text-red-600 dark:text-red-400 mb-4">Error loading events</p>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">{error.message}</p>
+      </Card>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Event Management</h1>
-          <p className="text-gray-600 text-lg">Manage and moderate all events</p>
-        </motion.div>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Event Management</h1>
+        <p className="text-gray-600 dark:text-gray-400">Manage and moderate all events</p>
+      </motion.div>
 
-        {/* Filters and Search */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6 flex flex-col sm:flex-row gap-4"
-        >
-          <div className="flex-1 relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <FiSearch className="w-5 h-5" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search events, organizers, venues..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20"
-            />
+      {/* Filters and Search */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex flex-col sm:flex-row gap-4"
+      >
+        <div className="flex-1 relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+            <FiSearch className="w-5 h-5" />
           </div>
-          <div className="w-48">
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20"
-            >
-              {filterOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </motion.div>
+          <input
+            type="text"
+            placeholder="Search events, organizers, venues..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-orange-500 dark:focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+          />
+        </div>
+        <div className="w-48">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-orange-500 dark:focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+          >
+            {filterOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </motion.div>
 
-        {filteredEvents.length === 0 ? (
-          <Card className="p-12 text-center">
-            <p className="text-gray-600">No events found</p>
-          </Card>
-        ) : (
-          <Card className="overflow-hidden">
+      {filteredEvents.length === 0 ? (
+        <Card className="p-12 text-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-600 dark:text-gray-400">No events found</p>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <Table>
               <Table.Header>
                 <Table.HeaderCell>Title</Table.HeaderCell>
@@ -168,26 +162,26 @@ const EventManagementPage = () => {
                   <Table.Row key={event._id}>
                     <Table.Cell>
                       <div>
-                        <p className="font-semibold text-gray-900">{event.title}</p>
-                        <p className="text-sm text-gray-600 line-clamp-1">{event.description}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{event.title}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">{event.description}</p>
                       </div>
                     </Table.Cell>
                     <Table.Cell>
                       <div className="flex items-center gap-2">
-                        <FiUser className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-900">
+                        <FiUser className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <span className="text-sm text-gray-900 dark:text-white">
                           {event.organizer?.firstName} {event.organizer?.lastName}
                         </span>
                       </div>
                     </Table.Cell>
                     <Table.Cell>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <FiCalendar className="w-4 h-4" />
                         {event.startDate && format(new Date(event.startDate), 'MMM dd, yyyy')}
                       </div>
                     </Table.Cell>
                     <Table.Cell>
-                      <span className="text-sm text-gray-900">
+                      <span className="text-sm text-gray-900 dark:text-white">
                         {event.venue?.name || 'N/A'}
                       </span>
                     </Table.Cell>
@@ -239,7 +233,7 @@ const EventManagementPage = () => {
             title="Delete Event"
           >
             <div className="space-y-4">
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 Are you sure you want to delete this event? This action cannot be undone.
               </p>
               <div className="flex gap-3 justify-end">
@@ -260,12 +254,12 @@ const EventManagementPage = () => {
             </div>
           </Modal>
         )}
-      </div>
     </div>
   );
 };
 
 export default EventManagementPage;
+
 
 
 

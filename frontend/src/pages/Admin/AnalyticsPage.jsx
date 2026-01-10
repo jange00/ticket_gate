@@ -88,108 +88,106 @@ const AnalyticsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex items-center justify-between"
-        >
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Analytics</h1>
-            <p className="text-gray-600 text-lg">System-wide analytics and insights</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:border-gray-500 focus:ring-2 focus:ring-gray-500/20"
-            >
-              <option value="1month">Last Month</option>
-              <option value="3months">Last 3 Months</option>
-              <option value="6months">Last 6 Months</option>
-              <option value="1year">Last Year</option>
-            </select>
-          </div>
-        </motion.div>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Analytics</h1>
+          <p className="text-gray-600 dark:text-gray-400">System-wide analytics and insights</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-orange-500 dark:focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+          >
+            <option value="1month">Last Month</option>
+            <option value="3months">Last 3 Months</option>
+            <option value="6months">Last 6 Months</option>
+            <option value="1year">Last Year</option>
+          </select>
+        </div>
+      </motion.div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {summaryStats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
-                    <stat.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-sm font-medium text-green-600">{stat.change}</span>
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {summaryStats.map((stat, index) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-lg`}>
+                  <stat.icon className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-gray-600 mb-1">{stat.label}</p>
-                <p className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-                  {stat.value}
-                </p>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Revenue Analytics</h2>
-                <Button variant="ghost" size="sm" onClick={() => handleExport('Revenue')}>
-                  <FiDownload className="w-4 h-4" />
-                </Button>
+                <span className="text-sm font-medium text-green-600 dark:text-green-400">{stat.change}</span>
               </div>
-              <RevenueChart data={revenueData} />
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{stat.label}</p>
+              <p className={`text-2xl font-bold bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                {stat.value}
+              </p>
             </Card>
           </motion.div>
+        ))}
+      </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">User Growth</h2>
-                <Button variant="ghost" size="sm" onClick={() => handleExport('Users')}>
-                  <FiDownload className="w-4 h-4" />
-                </Button>
-              </div>
-              <UserGrowthChart data={userGrowthData} />
-            </Card>
-          </motion.div>
-        </div>
-
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
         >
-          <Card className="p-6">
+          <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Ticket Sales</h2>
-              <Button variant="ghost" size="sm" onClick={() => handleExport('Sales')}>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Revenue Analytics</h2>
+              <Button variant="ghost" size="sm" onClick={() => handleExport('Revenue')}>
                 <FiDownload className="w-4 h-4" />
               </Button>
             </div>
-            <SalesChart data={salesData} />
+            <RevenueChart data={revenueData} />
+          </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">User Growth</h2>
+              <Button variant="ghost" size="sm" onClick={() => handleExport('Users')}>
+                <FiDownload className="w-4 h-4" />
+              </Button>
+            </div>
+            <UserGrowthChart data={userGrowthData} />
           </Card>
         </motion.div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Ticket Sales</h2>
+            <Button variant="ghost" size="sm" onClick={() => handleExport('Sales')}>
+              <FiDownload className="w-4 h-4" />
+            </Button>
+          </div>
+          <SalesChart data={salesData} />
+        </Card>
+      </motion.div>
     </div>
   );
 };

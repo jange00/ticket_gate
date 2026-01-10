@@ -106,3 +106,4 @@ const PurchaseFailurePage = () => {
 
 export default PurchaseFailurePage;
 
+
