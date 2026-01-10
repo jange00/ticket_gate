@@ -150,27 +150,51 @@ const getEventSalesAnalytics = async (req, res, next) => {
       salesByDay[day].revenue += purchase.totalAmount;
     });
 
+    // Calculate check-in rate
+    const Ticket = require('../models/Ticket');
+    const { TICKET_STATUS } = require('../utils/constants');
+    const tickets = await Ticket.find({ eventId }).lean();
+    const checkedInTickets = tickets.filter(t => t.status === TICKET_STATUS.CHECKED_IN).length;
+    const checkInRate = tickets.length > 0 ? ((checkedInTickets / tickets.length) * 100).toFixed(2) : 0;
+
+    // Convert salesByType object to array format
+    const salesByTypeArray = Object.entries(salesByType).map(([name, data]) => ({
+      name,
+      quantity: data.quantity,
+      revenue: data.revenue
+    }));
+
+    // Format revenueByDay array
+    const revenueByDayArray = Object.entries(salesByDay)
+      .map(([date, data]) => ({
+        date,
+        name: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        revenue: data.revenue,
+        count: data.count
+      }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
-        event: {
-          id: event._id,
-          title: event.title,
-          totalTickets: event.totalTickets,
-          soldTickets: event.soldTickets
-        },
-        summary: {
-          totalRevenue,
-          totalTicketsSold,
-          totalPurchases: purchases.length,
-          averageOrderValue: purchases.length > 0 ? totalRevenue / purchases.length : 0
-        },
-        salesByType,
-        salesByDay: Object.entries(salesByDay).map(([date, data]) => ({
-          date,
-          ...data
-        })),
-        recentPurchases: purchases.slice(0, 10)
+        totalRevenue,
+        ticketsSold: totalTicketsSold,
+        averageOrder: purchases.length > 0 ? totalRevenue / purchases.length : 0,
+        checkInRate: parseFloat(checkInRate),
+        revenueByDay: revenueByDayArray,
+        salesByType: salesByTypeArray,
+        recentPurchases: purchases.slice(0, 10).map(purchase => ({
+          _id: purchase._id,
+          createdAt: purchase.createdAt,
+          totalAmount: purchase.totalAmount,
+          status: purchase.status,
+          attendeeInfo: {
+            firstName: purchase.userId?.firstName,
+            lastName: purchase.userId?.lastName,
+            email: purchase.userId?.email
+          },
+          tickets: purchase.tickets || []
+        }))
       }
     });
   } catch (error) {
