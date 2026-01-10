@@ -14,5 +14,7 @@ export const purchasesApi = {
   
   getById: (id) => client.get(`/purchases/${id}`),
   
+  getStatus: (transactionId) => client.get(`/purchases/status/${transactionId}`),
+  
   create: (data) => client.post('/purchases', data),
 };

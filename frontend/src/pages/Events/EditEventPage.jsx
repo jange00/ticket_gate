@@ -307,58 +307,48 @@ const EditEventPage = () => {
     'Other',
   ];
 
-  // Extract event data - handle various response structures
+  // Extract event data - handle backend response structure: { success: true, data: { event: {...}, ticketTypes: [...] } }
   let event = null;
+  let ticketTypes = [];
+  
   if (eventData) {
     const responseData = eventData.data; // Axios wraps response in .data
-    if (responseData) {
-      // Handle { success: true, data: {...} }
-      if (responseData.success && responseData.data) {
-        event = responseData.data;
-      }
-      // Handle { data: {...} } (nested data)
-      else if (responseData.data && typeof responseData.data === 'object' && !Array.isArray(responseData.data)) {
-        event = responseData.data;
-      }
-      // Handle direct object (the event itself)
-      else if (typeof responseData === 'object' && !Array.isArray(responseData) && responseData._id) {
-        event = responseData;
-      }
-    }
-    // Final fallback
-    if (!event) {
-      event = eventData?.data?.data || eventData?.data || eventData;
+    if (responseData?.success && responseData?.data) {
+      // Backend returns { success: true, data: { event: {...}, ticketTypes: [...] } }
+      event = responseData.data.event || responseData.data;
+      ticketTypes = responseData.data.ticketTypes || [];
+    } else if (responseData?.data) {
+      // Fallback: direct data object
+      event = responseData.data.event || responseData.data;
+      ticketTypes = responseData.data.ticketTypes || [];
+    } else if (responseData?._id) {
+      // Direct event object
+      event = responseData;
     }
   }
 
-  // Debug logging
-  if (import.meta.env.DEV) {
-    console.log('EditEventPage - Raw eventData:', eventData);
-    console.log('EditEventPage - Extracted event:', event);
-  }
-
-  // Extract ticket types - handle various response structures
-  let ticketTypes = [];
-  if (ticketTypesData) {
+  // Extract ticket types from separate API call if not already extracted
+  if (ticketTypes.length === 0 && ticketTypesData) {
     const responseData = ticketTypesData.data;
-    if (responseData) {
-      if (responseData.success && responseData.data) {
-        if (Array.isArray(responseData.data)) {
-          ticketTypes = responseData.data;
-        } else if (responseData.data.data && Array.isArray(responseData.data.data)) {
-          ticketTypes = responseData.data.data;
-        }
-      } else if (responseData.data && Array.isArray(responseData.data)) {
-        ticketTypes = responseData.data;
-      } else if (Array.isArray(responseData)) {
-        ticketTypes = responseData;
-      }
+    if (responseData?.success && responseData?.data) {
+      ticketTypes = Array.isArray(responseData.data) ? responseData.data : responseData.data.data || [];
+    } else if (Array.isArray(responseData?.data)) {
+      ticketTypes = responseData.data;
+    } else if (Array.isArray(responseData)) {
+      ticketTypes = responseData;
     }
   }
   
   // Ensure ticketTypes is always an array
   if (!Array.isArray(ticketTypes)) {
     ticketTypes = [];
+  }
+
+  // Debug logging
+  if (import.meta.env.DEV) {
+    console.log('EditEventPage - Raw eventData:', eventData);
+    console.log('EditEventPage - Extracted event:', event);
+    console.log('EditEventPage - Extracted ticketTypes:', ticketTypes);
   }
 
   // Create initial values from event data

@@ -10,7 +10,7 @@ import Table from '../../components/ui/Table';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiPlus, FiEye, FiEdit, FiTrash2, FiTrendingUp, FiCalendar, FiTag } from 'react-icons/fi';
+import { FiPlus, FiEye, FiEdit, FiTrash2, FiTrendingUp, FiCalendar, FiTag, FiBarChart2 } from 'react-icons/fi';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import Dropdown from '../../components/ui/Dropdown';
@@ -287,6 +287,11 @@ const MyEventsPage = () => {
                           <Link to={`/events/${event._id}/edit`}>
                             <Button variant="ghost" size="sm" title="Edit">
                               <FiEdit className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                          <Link to={`/organizer/analytics/${event._id}`}>
+                            <Button variant="ghost" size="sm" title="Analytics">
+                              <FiBarChart2 className="w-4 h-4 text-blue-600" />
                             </Button>
                           </Link>
                           {event.status === 'draft' && (

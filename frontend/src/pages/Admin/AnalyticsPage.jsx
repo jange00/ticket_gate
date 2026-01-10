@@ -23,15 +23,14 @@ const AnalyticsPage = () => {
 
   const stats = statsData?.data?.data || statsData?.data || {};
 
-  // Prepare chart data
-  const revenueData = Array.from({ length: 6 }, (_, i) => {
-    const date = subMonths(new Date(), 5 - i);
-    return {
-      name: format(date, 'MMM'),
-      revenue: Math.floor(Math.random() * 100000) + 20000, // Mock - replace with real data
-    };
-  });
+  // Prepare chart data from backend response
+  const revenueByMonth = stats.revenue?.byMonth || [];
+  const revenueData = revenueByMonth.map(item => ({
+    name: format(new Date(item._id.year, item._id.month - 1), 'MMM'),
+    revenue: item.revenue || 0,
+  }));
 
+  // Use mock data if backend doesn't provide (should be replaced with real user growth data)
   const userGrowthData = Array.from({ length: 6 }, (_, i) => {
     const date = subMonths(new Date(), 5 - i);
     return {
@@ -40,6 +39,7 @@ const AnalyticsPage = () => {
     };
   });
 
+  // Use mock data if backend doesn't provide (should be replaced with real sales data)
   const salesData = Array.from({ length: 6 }, (_, i) => {
     const date = subMonths(new Date(), 5 - i);
     return {
@@ -59,28 +59,28 @@ const AnalyticsPage = () => {
   const summaryStats = [
     {
       label: 'Total Users',
-      value: stats.totalUsers || 0,
+      value: stats.users?.total || 0,
       icon: FiUsers,
       color: 'from-blue-500 to-blue-600',
       change: '+12%',
     },
     {
       label: 'Total Events',
-      value: stats.totalEvents || 0,
+      value: stats.events?.total || 0,
       icon: FiCalendar,
       color: 'from-purple-500 to-purple-600',
       change: '+8%',
     },
     {
       label: 'Total Revenue',
-      value: formatCurrency(stats.totalRevenue || 0),
+      value: formatCurrency(stats.revenue?.total || 0),
       icon: FiDollarSign,
       color: 'from-green-500 to-green-600',
       change: '+15%',
     },
     {
       label: 'Tickets Sold',
-      value: stats.totalTicketsSold || 0,
+      value: stats.tickets?.total || 0,
       icon: FiTag,
       color: 'from-orange-500 to-orange-600',
       change: '+10%',

@@ -62,6 +62,10 @@ import TicketDetailPage from '../pages/Tickets/TicketDetailPage';
 import CheckoutPage from '../pages/Checkout/CheckoutPage';
 import ConfirmationPage from '../pages/Checkout/ConfirmationPage';
 
+// Purchase pages
+import PurchaseSuccessPage from '../pages/Purchase/PurchaseSuccessPage';
+import PurchaseFailurePage from '../pages/Purchase/PurchaseFailurePage';
+
 // Other pages
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 
@@ -204,6 +208,12 @@ const AppRouter = () => {
         >
           <Route index element={<CheckoutPage />} />
           <Route path="confirmation" element={<ConfirmationPage />} />
+        </Route>
+
+        {/* Purchase Result Routes */}
+        <Route path="/purchase" element={<AppLayout />}>
+          <Route path="success" element={<PurchaseSuccessPage />} />
+          <Route path="failure" element={<PurchaseFailurePage />} />
         </Route>
 
         {/* Error Routes */}

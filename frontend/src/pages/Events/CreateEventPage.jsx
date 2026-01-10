@@ -232,19 +232,34 @@ const CreateEventPage = () => {
         ...(imageUrl && imageUrl.trim() && { imageUrl: imageUrl.trim() }),
         ...(bannerUrl && bannerUrl.trim() && { bannerUrl: bannerUrl.trim() }),
         ticketTypes: ticketTypes,
+        status: data.status || EVENT_STATUS.DRAFT, // Include status in payload
       };
 
-      // Create the event (defaults to DRAFT)
+      // Create the event
       const eventResponse = await eventsApi.create(payload);
-      const eventId = eventResponse?.data?.data?._id || eventResponse?.data?._id || eventResponse?.data?.id;
-
-      // If status is PUBLISHED, publish the event
+      
+      // Extract event ID from response - handle various response structures
+      let eventId = null;
+      const responseData = eventResponse?.data;
+      if (responseData) {
+        if (responseData.data) {
+          eventId = responseData.data._id || responseData.data.id;
+        } else {
+          eventId = responseData._id || responseData.id;
+        }
+      }
+      
+      // If status is PUBLISHED and event was created as DRAFT, also call publish API as fallback
+      // (Some backends require explicit publish call even if status is set)
       if (data.status === EVENT_STATUS.PUBLISHED && eventId) {
         try {
           await eventsApi.publish(eventId);
         } catch (publishError) {
           console.error('Error publishing event:', publishError);
-          toast.error('Event created but publishing failed. You can publish it later.');
+          // Don't show error if status was already set in payload - backend might have published it
+          if (payload.status !== EVENT_STATUS.PUBLISHED) {
+            toast.error('Event created but publishing failed. You can publish it later.');
+          }
         }
       }
 

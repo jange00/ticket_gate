@@ -30,9 +30,83 @@ const CheckoutPage = () => {
   const createPurchaseMutation = useMutation({
     mutationFn: (data) => purchasesApi.create(data),
     onSuccess: (response) => {
-      const purchase = response?.data?.data || response?.data;
-      toast.success('Purchase completed successfully!');
-      navigate('/checkout/confirmation', { state: { purchaseId: purchase?._id || purchase?.id } });
+      console.log('Purchase API Response:', response);
+      
+      // Extract response data - handle various structures
+      const responseData = response?.data;
+      console.log('Response data:', responseData);
+      
+      let purchaseData = null;
+      let paymentUrl = null;
+
+      if (responseData) {
+        if (responseData.success && responseData.data) {
+          purchaseData = responseData.data.purchase || responseData.data;
+          paymentUrl = responseData.data.paymentUrl;
+          console.log('Extracted from success.data:', { purchaseData, paymentUrl });
+        } else if (responseData.data) {
+          purchaseData = responseData.data.purchase || responseData.data;
+          paymentUrl = responseData.data.paymentUrl;
+          console.log('Extracted from data:', { purchaseData, paymentUrl });
+        } else {
+          purchaseData = responseData.purchase || responseData;
+          paymentUrl = responseData.paymentUrl;
+          console.log('Extracted from responseData:', { purchaseData, paymentUrl });
+        }
+      }
+
+      console.log('Final paymentUrl:', paymentUrl);
+
+      // If we have a payment URL, redirect to eSewa payment page
+      if (paymentUrl) {
+        toast.success('Redirecting to payment...');
+        
+        // Parse the URL to extract base URL and parameters
+        try {
+          const url = new URL(paymentUrl);
+          
+          // eSewa endpoint URL (use the path from the paymentUrl but ensure correct endpoint)
+          // The backend might return the full URL, but we need to use the form endpoint
+          const esewaEndpoint = url.pathname.includes('/form') 
+            ? `${url.protocol}//${url.host}${url.pathname}`
+            : `${url.protocol}//${url.host}/api/epay/main/v2/form`;
+          
+          const params = new URLSearchParams(url.search);
+          
+          // Create a form element for POST submission
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = esewaEndpoint;
+          form.style.display = 'none';
+          form.target = '_self'; // Submit in the same window
+          
+          // Add all query parameters as hidden input fields
+          params.forEach((value, key) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value;
+            form.appendChild(input);
+          });
+          
+          // Append form to body and submit
+          document.body.appendChild(form);
+          
+          // Small delay to ensure form is in DOM
+          setTimeout(() => {
+            form.submit();
+          }, 100);
+        } catch (error) {
+          // Fallback: if URL parsing fails, log error
+          console.error('Error parsing payment URL:', error);
+          console.error('Payment URL:', paymentUrl);
+          toast.error('Error processing payment URL. Please try again.');
+        }
+      } else {
+        // Fallback: if no payment URL, show error
+        toast.error('Payment URL not received from server');
+        console.error('Purchase response:', response);
+      }
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to process purchase');
@@ -119,7 +193,7 @@ const CheckoutPage = () => {
 
     createPurchaseMutation.mutate(purchaseData);
   };
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -373,7 +447,7 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                 </div>
-              </Card>
+      </Card>
             </motion.div>
           </div>
         </div>
