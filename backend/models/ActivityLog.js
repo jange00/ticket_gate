@@ -16,8 +16,7 @@ const activityLogSchema = new mongoose.Schema({
     required: true
   },
   ipAddress: {
-    type: String,
-    required: true
+    type: String
   },
   userAgent: {
     type: String

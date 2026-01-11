@@ -12,6 +12,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiCreditCard, FiLock, FiCalendar, FiMapPin, FiTag, FiCheck, FiShield } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { paymentsApi } from '../../api/payments.api';
+import PaymentMethod from '../../components/PaymentMethod';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -27,77 +29,72 @@ const CheckoutPage = () => {
     enabled: !!eventId,
   });
 
+  const initiatePaymentMutation = useMutation({
+    mutationFn: (data) => paymentsApi.initiateEsewa(data),
+    onSuccess: (response) => {
+      console.log('eSewa init response:', response);
+      if (response.data?.success && response.data?.data) {
+        const { payment_url, formData } = response.data.data;
+        submitEsewaForm(payment_url, formData);
+      } else {
+        toast.error('Invalid response from payment gateway');
+      }
+    },
+    onError: (error) => {
+      console.error('eSewa initiation failed:', error);
+      toast.error(error.response?.data?.message || 'Failed to initiate eSewa payment');
+    }
+  });
+
+  const submitEsewaForm = (actionUrl, formData) => {
+    const form = document.createElement("form");
+    form.setAttribute("method", "POST");
+    form.setAttribute("action", actionUrl);
+    form.style.display = "none";
+
+    for (const key in formData) {
+      if (formData.hasOwnProperty(key)) {
+        const hiddenField = document.createElement("input");
+        hiddenField.setAttribute("type", "hidden");
+        hiddenField.setAttribute("name", key);
+        hiddenField.setAttribute("value", formData[key]);
+        form.appendChild(hiddenField);
+      }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+  };
+
   const createPurchaseMutation = useMutation({
     mutationFn: (data) => purchasesApi.create(data),
     onSuccess: (response) => {
       console.log('Purchase API Response:', response);
       
-      // Extract response data - handle various structures
-      const responseData = response?.data;
-      console.log('Response data:', responseData);
-      
-      let purchaseData = null;
-      let paymentUrl = null;
-
-      if (responseData) {
-        if (responseData.success && responseData.data) {
-          purchaseData = responseData.data.purchase || responseData.data;
-          paymentUrl = responseData.data.paymentUrl;
-          console.log('Extracted from success.data:', { purchaseData, paymentUrl });
-        } else if (responseData.data) {
-          purchaseData = responseData.data.purchase || responseData.data;
-          paymentUrl = responseData.data.paymentUrl;
-          console.log('Extracted from data:', { purchaseData, paymentUrl });
-        } else {
-          purchaseData = responseData.purchase || responseData;
-          paymentUrl = responseData.paymentUrl;
-          console.log('Extracted from responseData:', { purchaseData, paymentUrl });
-        }
+      let purchase = null;
+      // Handle various response structures
+      if (response.data?.success && response.data?.data?.purchase) {
+         purchase = response.data.data.purchase;
+      } else if (response.data?.purchase) {
+         purchase = response.data.purchase;
+      } else if (response.data?.data) {
+         purchase = response.data.data;
       }
 
-      console.log('Final paymentUrl:', paymentUrl);
-
-      // If we have a payment URL, redirect to eSewa payment page
-      // eSewa payment gateway requires POST submission, not GET redirect
-      if (paymentUrl) {
-        toast.success('Redirecting to payment...');
-        
-        try {
-          const url = new URL(paymentUrl);
-          const baseUrl = `${url.protocol}//${url.host}${url.pathname}`;
-          const params = new URLSearchParams(url.search);
-          
-          // Create a form element for POST submission (eSewa requires POST)
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = baseUrl;
-          form.style.display = 'none';
-          
-          // Add all query parameters as hidden input fields for POST submission
-          params.forEach((value, key) => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value;
-            form.appendChild(input);
-          });
-          
-          // Append form to body and submit
-          document.body.appendChild(form);
-          form.submit();
-        } catch (error) {
-          console.error('Error processing payment URL:', error);
-          console.error('Payment URL:', paymentUrl);
-          toast.error('Error processing payment URL. Please try again.');
-        }
+      if (purchase && paymentMethod === 'esewa') {
+        toast.loading('Redirecting to eSewa...');
+        initiatePaymentMutation.mutate({
+          purchaseId: purchase._id || purchase.id,
+          amount: purchase.totalAmount
+        });
       } else {
-        // Fallback: if no payment URL, show error
-        toast.error('Payment URL not received from server');
-        console.error('Purchase response:', response);
+        toast.success('Purchase created!');
+        navigate('/events'); 
       }
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to process purchase');
+      console.error('Purchase creation failed:', error);
+      toast.error(error.response?.data?.message || 'Failed to initiate purchase');
     },
   });
 
@@ -318,42 +315,11 @@ const CheckoutPage = () => {
                     </div>
                     Payment Method
                   </h2>
-                  <div className="space-y-4">
-                    <motion.label
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`flex items-center p-5 rounded-2xl cursor-pointer border-2 transition-all ${
-                        paymentMethod === 'esewa'
-                          ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100/50 shadow-lg'
-                          : 'border-gray-200 bg-white hover:border-orange-300 hover:shadow-md'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="esewa"
-                        checked={paymentMethod === 'esewa'}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="sr-only"
-                      />
-                      <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center ${
-                        paymentMethod === 'esewa' ? 'border-orange-500 bg-orange-500' : 'border-gray-300'
-                      }`}>
-                        {paymentMethod === 'esewa' && (
-                          <FiCheck className="w-4 h-4 text-white" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
-                            <FiCreditCard className="w-5 h-5 text-white" />
-                          </div>
-                          <p className="font-bold text-gray-900 text-lg">eSewa</p>
-                        </div>
-                        <p className="text-sm text-gray-600 ml-11">Pay securely with eSewa wallet</p>
-                      </div>
-                    </motion.label>
-                  </div>
+                  
+                  <PaymentMethod 
+                    selectedMethod={paymentMethod}
+                    onSelect={setPaymentMethod}
+                  />
                 </motion.div>
 
                 <motion.div

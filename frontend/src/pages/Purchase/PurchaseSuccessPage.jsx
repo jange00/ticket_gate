@@ -1,22 +1,99 @@
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { purchasesApi } from '../../api/purchases.api';
+import { paymentsApi } from '../../api/payments.api';
+import { useState, useEffect } from 'react';
 import Card from '../../components/ui/Card';
 import Loading from '../../components/ui/Loading';
 import Button from '../../components/ui/Button';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { motion } from 'framer-motion';
 import { FiCheckCircle, FiTag, FiHome, FiCalendar, FiMapPin, FiDollarSign } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 const PurchaseSuccessPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const transactionId = searchParams.get('transactionId');
+  const transactionIdParam = searchParams.get('transactionId');
+  
+  // eSewa params
+  // eSewa params
+  const oid = searchParams.get('oid');
+  const amt = searchParams.get('amt');
+  const refId = searchParams.get('refId');
+  const dataParam = searchParams.get('data'); // V2 param
 
-  const { data: purchaseData, isLoading, error } = useQuery({
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifiedTransactionId, setVerifiedTransactionId] = useState(null);
+
+  // Determine effective transaction ID for UI
+  // V2: we need to decode 'data' to get the transaction ID locally if we want to show it before verification
+  // But usually we just verify first.
+  
+  const getTransactionId = () => {
+      if (verifiedTransactionId) return verifiedTransactionId;
+      if (transactionIdParam) return transactionIdParam;
+      if (oid) return oid;
+      if (dataParam) {
+          try {
+              const decoded = JSON.parse(atob(dataParam));
+              return decoded.transaction_uuid;
+          } catch (e) {
+              console.error('Failed to decode data param', e);
+          }
+      }
+      return null;
+  };
+
+  const transactionId = getTransactionId();
+
+  // Verification Mutation
+  const verifyPaymentMutation = useMutation({
+    mutationFn: (data) => paymentsApi.verifyEsewa(data),
+    onSuccess: (response) => {
+      console.log('Payment verification success:', response);
+      if (response.data && response.data.success) {
+         toast.success('Payment verified successfully!');
+         // If backend returns the updated purchase object, we might assume success
+         // But we still need to fetch details or just use what we have.
+         // Let's rely on useQuery to fetch details using the transactionId/oid
+         // Let's rely on useQuery to fetch details using the transactionId/oid
+         // For V2, we might have decoded the transactionId from data
+         setVerifiedTransactionId(transactionId);
+      }
+    },
+    onError: (error) => {
+      console.error('Payment verification failed:', error);
+      toast.error('Payment verification failed. Please contact support.');
+      navigate('/purchase/failure'); // Or stay here with error
+    }
+  });
+
+  useEffect(() => {
+    if (dataParam && !verifiedTransactionId && !isVerifying) {
+        setIsVerifying(true);
+        verifyPaymentMutation.mutate(
+            { data: dataParam },
+            {
+                onSettled: () => setIsVerifying(false)
+            }
+        );
+    } else if (oid && refId && amt && !verifiedTransactionId && !isVerifying) {
+      setIsVerifying(true);
+      verifyPaymentMutation.mutate(
+        { purchaseId: oid, amount: amt, refId, oid },
+        {
+          onSettled: () => setIsVerifying(false)
+        }
+      );
+    }
+  }, [oid, refId, amt, dataParam, verifiedTransactionId]);
+
+  const { data: purchaseData, isLoading: isLoadingPurchase, error } = useQuery({
     queryKey: ['purchase-transaction', transactionId],
     queryFn: () => purchasesApi.getByTransactionId(transactionId),
-    enabled: !!transactionId,
+    enabled: !!transactionId && !isVerifying, // Wait for verification if pending
+    retry: 1
   });
 
   // Extract purchase data - handle various response structures
@@ -36,7 +113,7 @@ const PurchaseSuccessPage = () => {
 
   const tickets = purchase?.tickets || [];
 
-  if (isLoading) {
+  if (isLoadingPurchase || isVerifying) {
     return <Loading fullScreen />;
   }
 

@@ -3,7 +3,7 @@ const Ticket = require('../models/Ticket');
 const TicketType = require('../models/TicketType');
 const Event = require('../models/Event');
 const ActivityLog = require('../models/ActivityLog');
-const { generateEsewaPaymentUrl } = require('../services/payment.service');
+// const { generateEsewaPaymentUrl } = require('../services/payment.service');
 const { sendTicketConfirmationEmail } = require('../services/email.service');
 const { parsePagination, buildPaginationMeta, getClientIp, getUserAgent } = require('../utils/helpers');
 const { HTTP_STATUS, ERROR_MESSAGES, PURCHASE_STATUS, ACTIVITY_TYPES } = require('../utils/constants');
@@ -88,52 +88,13 @@ const createPurchase = async (req, res, next) => {
       status: PURCHASE_STATUS.PENDING
     });
 
-    // Generate payment URL
-    // IMPORTANT: success_url and failure_url should point to backend webhook endpoint
-    // eSewa will redirect user's browser to these URLs with Base64-encoded payment data
-    const paymentRequestData = {
-      amount: subtotal,
-      taxAmount: tax,
-      serviceCharge: serviceCharge,
-      totalAmount: totalAmount,
-      productId: purchase.transactionId,
-      productName: `Tickets for ${event.title}`,
-      successUrl: `${config.API_URL}/webhooks/esewa`,
-      failureUrl: `${config.API_URL}/webhooks/esewa`
-    };
-
-    logger.info('=== Purchase Payment URL Generation ===');
-    logger.info('Purchase details:', {
-      purchaseId: purchase._id,
-      transactionId: purchase.transactionId,
-      totalAmount: purchase.totalAmount,
-      subtotal: purchase.subtotal,
-      tax: purchase.tax,
-      serviceCharge: purchase.serviceCharge,
-      eventId: purchase.eventId,
-      userId: purchase.userId
-    });
-    logger.info('Payment request data:', JSON.stringify(paymentRequestData, null, 2));
-    logger.info('Frontend URL from config:', config.FRONTEND_URL);
-
-    const paymentData = generateEsewaPaymentUrl(paymentRequestData);
-
-    logger.info('Payment URL generated successfully:', {
-      transactionId: paymentData.transactionId,
-      paymentUrlLength: paymentData.paymentUrl ? paymentData.paymentUrl.length : 0,
-      hasSignature: !!paymentData.signature
-    });
-
-    // Update purchase with payment URL
-    purchase.metadata = { paymentUrl: paymentData.paymentUrl };
-    await purchase.save();
-
+    // For now, just return the pending purchase
+    // Payment integration has been removed as requested
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      message: 'Purchase created, proceed to payment',
+      message: 'Purchase created successfully',
       data: {
-        purchase,
-        paymentUrl: paymentData.paymentUrl
+        purchase
       }
     });
   } catch (error) {

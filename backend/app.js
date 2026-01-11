@@ -19,7 +19,8 @@ const checkinRoutes = require('./routes/checkin.routes');
 const refundsRoutes = require('./routes/refunds.routes');
 const adminRoutes = require('./routes/admin.routes');
 const organizerRoutes = require('./routes/organizer.routes');
-const webhooksRoutes = require('./routes/webhooks.routes');
+const paymentRoutes = require('./routes/payment.routes');
+// const webhooksRoutes = require('./routes/webhooks.routes');
 
 // Initialize Express app
 const app = express();
@@ -118,7 +119,9 @@ app.use('/api/checkin', checkinRoutes);
 app.use('/api/refunds', refundsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/organizer', organizerRoutes);
-app.use('/api/webhooks', webhooksRoutes);
+
+app.use('/api/payments', paymentRoutes);
+// app.use('/api/webhooks', webhooksRoutes);
 
 // 404 handler
 app.use(notFound);

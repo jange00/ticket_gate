@@ -79,6 +79,9 @@ const purchaseSchema = new mongoose.Schema({
     type: String,
     default: 'esewa'
   },
+  esewaTransactionId: {
+    type: String
+  },
   paymentId: {
     type: String
   },

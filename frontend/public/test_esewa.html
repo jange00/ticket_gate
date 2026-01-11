@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eSewa V2 Connectivity Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .form-container { max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        input { display: block; width: 100%; margin-bottom: 10px; padding: 5px; }
+        button { background: #60bb46; color: white; padding: 10px 20px; border: none; cursor: pointer; width: 100%; font-size: 16px; }
+        button:hover { background: #4ca335; }
+        .note { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>eSewa V2 Test (Manual)</h2>
+        <p class="note">This form attempts to send a payment DIRECTLY to eSewa's test server. If this works, the URL is valid. if it 404s, the URL is broken.</p>
+
+        <!-- Use the standard V2 Test URL -->
+        <form action="https://rc-epay.esewa.com.np/api/epay/main/v2/form" method="POST">
+            
+            <label>Amount:</label>
+            <input type="text" name="amount" value="100">
+            
+            <label>Tax Amount:</label>
+            <input type="text" name="tax_amount" value="0">
+            
+            <label>Total Amount:</label>
+            <input type="text" name="total_amount" value="100">
+            
+            <label>Transaction UUID:</label>
+            <!-- Using a random simplified UUID for testing -->
+            <input type="text" name="transaction_uuid" id="uuid" value="">
+            
+            <label>Product Code:</label>
+            <input type="text" name="product_code" value="EPAYTEST">
+            
+            <label>Product Service Charge:</label>
+            <input type="text" name="product_service_charge" value="0">
+            
+            <label>Product Delivery Charge:</label>
+            <input type="text" name="product_delivery_charge" value="0">
+            
+            <label>Success URL:</label>
+            <input type="text" name="success_url" value="http://google.com">
+            
+            <label>Failure URL:</label>
+            <input type="text" name="failure_url" value="http://google.com">
+            
+            <label>Signed Field Names:</label>
+            <input type="text" name="signed_field_names" value="total_amount,transaction_uuid,product_code">
+            
+            <label>Signature (Hashed for 100, UUID=TEST, EPAYTEST):</label>
+            <!-- Note: Signature generation is complex in JS client-side without libraries. 
+                 This form simply TESTS if the endpoint accepts the POST. 
+                 A 404 means endpoint dead. 
+                 A "Signature Mismatch" error means endpoint ALIVE. -->
+            <input type="text" name="signature" value="TEST_SIGNATURE_IGNORE_THIS">
+            
+            <button type="submit">Test Connection (Submit to eSewa)</button>
+        </form>
+    </div>
+
+    <script>
+        // Set unique ID
+        document.getElementById('uuid').value = 'TEST-' + Date.now();
+    </script>
+</body>
+</html>

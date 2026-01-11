@@ -1,256 +1,98 @@
-const axios = require('axios');
-const crypto = require('crypto');
-const esewaConfig = require('../config/esewa');
+const config = require('../config/env');
 const logger = require('./logging.service');
-const { generateTransactionId } = require('../utils/helpers');
+const crypto = require('crypto');
+const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
 
 /**
- * Generate eSewa payment request URL
+ * Generate eSewa Signature
  */
-const generateEsewaPaymentUrl = (paymentData) => {
+const generateSignature = (message) => {
+  const hmac = crypto.createHmac('sha256', config.ESEWA_SECRET_KEY);
+  hmac.update(message);
+  return hmac.digest('base64');
+};
+
+/**
+ * Generate eSewa Payment URL
+ */
+const generateEsewaPaymentUrl = async (purchaseId, amount, transactionId) => {
   try {
     logger.info('=== eSewa Payment URL Generation Started ===');
-    logger.info('Input paymentData:', JSON.stringify(paymentData, null, 2));
-
-    const {
-      amount,
-      taxAmount = 0,
-      serviceCharge = 0,
-      deliveryCharge = 0,
-      totalAmount,
-      productId,
-      productName,
-      productServiceCharge = 0,
-      productDeliveryCharge = 0,
-      callbackUrl,
-      successUrl,
-      failureUrl
-    } = paymentData;
-
-    // Calculate total
-    const calculatedTotal = amount + taxAmount + serviceCharge + deliveryCharge;
-    const finalTotalAmount = totalAmount || calculatedTotal;
-    const finalTaxAmount = taxAmount || 0;
-    const finalProductServiceCharge = productServiceCharge || serviceCharge || 0;
-    const finalProductDeliveryCharge = productDeliveryCharge || deliveryCharge || 0;
-    const transactionUuid = productId || generateTransactionId();
     
-    logger.info('Calculated values:', {
-      amount,
-      taxAmount: finalTaxAmount,
-      serviceCharge: finalProductServiceCharge,
-      deliveryCharge: finalProductDeliveryCharge,
-      calculatedTotal,
-      totalAmount: finalTotalAmount,
+    // In test environment, use default success/fail URLs
+    // In production, these should be real endpoints
+    const successUrl = `${config.FRONTEND_URL}/payment/success?q=su`;
+    const failureUrl = `${config.FRONTEND_URL}/payment/failure?q=fu`;
+    
+    const productCode = config.ESEWA_MERCHANT_ID;
+    const totalAmount = amount.toString();
+    const transactionUuid = transactionId;
+    
+    // Message format: "total_amount,transaction_uuid,product_code"
+    const message = `${totalAmount},${transactionUuid},${productCode}`;
+    const signature = generateSignature(message);
+    
+    logger.info('eSewa Payment URL generated', {
+      productCode,
+      totalAmount,
       transactionUuid
     });
     
-    // Build payment parameters (using eSewa documentation parameter names)
-    const finalSuccessUrl = successUrl || `${esewaConfig.baseUrl}/success`;
-    const finalFailureUrl = failureUrl || `${esewaConfig.baseUrl}/failure`;
-    
-    const paymentParams = {
-      amount: amount.toString(),
-      tax_amount: finalTaxAmount.toString(),
-      total_amount: finalTotalAmount.toString(),
-      transaction_uuid: transactionUuid,
-      product_code: esewaConfig.merchantId,
-      product_service_charge: finalProductServiceCharge.toString(),
-      product_delivery_charge: finalProductDeliveryCharge.toString(),
-      success_url: finalSuccessUrl,
-      failure_url: finalFailureUrl,
-      signed_field_names: 'total_amount,transaction_uuid,product_code'
-    };
-
-    logger.info('Payment parameters built:', JSON.stringify(paymentParams, null, 2));
-    logger.info('eSewa configuration:', {
-      merchantId: esewaConfig.merchantId,
-      apiUrl: esewaConfig.apiUrl,
-      baseUrl: esewaConfig.baseUrl,
-      secretKeyLength: esewaConfig.secretKey ? esewaConfig.secretKey.length : 0,
-      secretKeySet: !!esewaConfig.secretKey
-    });
-
-    // Generate signature (ONLY these 3 fields in exact order as per eSewa documentation)
-    const signatureFields = ['total_amount', 'transaction_uuid', 'product_code'];
-    const signatureMessage = signatureFields
-      .map(field => `${field}=${paymentParams[field]}`)
-      .join(',');
-    
-    logger.info('Signature generation:', {
-      signatureFields,
-      signatureMessage,
-      secretKey: esewaConfig.secretKey ? `${esewaConfig.secretKey.substring(0, 5)}...` : 'NOT SET'
-    });
-    
-    const signature = crypto
-      .createHmac('sha256', esewaConfig.secretKey)
-      .update(signatureMessage)
-      .digest('base64');
-
-    logger.info('Signature generated:', {
-      signature,
-      signatureLength: signature.length
-    });
-
-    // Add signature to params
-    paymentParams.signature = signature;
-
-    // Build form data (eSewa expects form submission, but we'll return URL with query params)
-    // Note: eSewa documentation shows HTML form, but query params in URL also work
-    const queryParts = [];
-    Object.keys(paymentParams).forEach(key => {
-      const value = paymentParams[key];
-      queryParts.push(`${key}=${encodeURIComponent(value)}`);
-    });
-    
-    // Build final URL
-    const queryString = queryParts.join('&');
-    const paymentUrl = `${esewaConfig.apiUrl}?${queryString}`;
-
-    logger.info('=== eSewa Payment URL Generated Successfully ===');
-    logger.info('Final payment URL:', paymentUrl);
-    logger.info('Payment URL breakdown:', {
-      baseUrl: esewaConfig.apiUrl,
-      queryString: queryString,
-      parameters: paymentParams,
-      signature: signature,
-      fullUrl: paymentUrl
-    });
-    logger.info('Summary:', {
-      transactionUuid: paymentParams.transaction_uuid,
-      totalAmount: paymentParams.total_amount,
-      productCode: paymentParams.product_code,
-      endpoint: esewaConfig.apiUrl,
-      successUrl: paymentParams.success_url,
-      failureUrl: paymentParams.failure_url
-    });
-
     return {
-      paymentUrl: paymentUrl,
-      transactionId: paymentParams.transaction_uuid,
-      signature
+      url: config.ESEWA_API_URL,
+      formData: {
+        amount: totalAmount,
+        tax_amount: "0",
+        total_amount: totalAmount,
+        transaction_uuid: transactionUuid,
+        product_code: productCode,
+        product_service_charge: "0",
+        product_delivery_charge: "0",
+        success_url: successUrl,
+        failure_url: failureUrl,
+        signed_field_names: "total_amount,transaction_uuid,product_code",
+        signature: signature
+      }
     };
   } catch (error) {
-    logger.error('=== eSewa Payment URL Generation FAILED ===');
-    logger.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    logger.error('Error occurred with paymentData:', JSON.stringify(paymentData, null, 2));
+    logger.error('Error generating eSewa payment URL:', error);
     throw error;
   }
 };
 
 /**
- * Verify eSewa payment response
- * Response format from eSewa documentation:
- * {
- *   "transaction_code": "000AWEO",
- *   "status": "COMPLETE",
- *   "total_amount": 1000.0,
- *   "transaction_uuid": "250610-162413",
- *   "product_code": "EPAYTEST",
- *   "signed_field_names": "transaction_code,status,total_amount,transaction_uuid,product_code,signed_field_names",
- *   "signature": "..."
- * }
+ * Check Payment Status
  */
-const verifyEsewaPayment = (paymentResponse) => {
+const checkPaymentStatus = async (transactionId, totalAmount) => {
   try {
-    const {
-      transaction_code,
-      status,
-      total_amount,
-      transaction_uuid,
-      product_code,
-      signed_field_names,
-      signature
-    } = paymentResponse;
-
-    // Build verification data (fields must match signed_field_names in order)
-    // According to documentation: transaction_code,status,total_amount,transaction_uuid,product_code,signed_field_names
-    const verificationMessage = [
-      `transaction_code=${transaction_code}`,
-      `status=${status}`,
-      `total_amount=${total_amount}`,
-      `transaction_uuid=${transaction_uuid}`,
-      `product_code=${product_code}`,
-      `signed_field_names=${signed_field_names}`
-    ].join(',');
+    const productCode = config.ESEWA_MERCHANT_ID;
+    const url = `${config.ESEWA_BASE_URL}/api/epay/transaction/status/`;
     
-    const calculatedSignature = crypto
-      .createHmac('sha256', esewaConfig.secretKey)
-      .update(verificationMessage)
-      .digest('base64');
-
-    // Verify signature
-    const isValid = calculatedSignature === signature;
-
-    if (isValid) {
-      logger.info('eSewa payment verified successfully', {
-        transaction_uuid,
-        transaction_code,
-        status,
-        total_amount
-      });
-    } else {
-      logger.warn('eSewa payment verification failed', {
-        transaction_uuid,
-        expectedSignature: calculatedSignature,
-        receivedSignature: signature
-      });
-    }
-
-    return {
-      valid: isValid,
-      transactionId: transaction_uuid,
-      transactionCode: transaction_code,
-      refId: transaction_code,
-      status: status,
-      totalAmount: total_amount,
-      productCode: product_code
+    const params = {
+      product_code: productCode,
+      total_amount: totalAmount,
+      transaction_uuid: transactionId
     };
-  } catch (error) {
-    logger.error('eSewa payment verification failed:', error);
-    return {
-      valid: false,
-      error: error.message
-    };
-  }
-};
-
-/**
- * Check payment status from eSewa API
- * Used when no response received within 5 minutes
- */
-const checkPaymentStatus = async (transactionUuid, totalAmount) => {
-  try {
-    const statusUrl = `${esewaConfig.baseUrl}/api/epay/transaction/status/`;
-    const params = new URLSearchParams({
-      product_code: esewaConfig.merchantId,
-      total_amount: totalAmount.toString(),
-      transaction_uuid: transactionUuid
-    });
-
-    const response = await axios.get(`${statusUrl}?${params.toString()}`);
     
-    logger.info('Payment status checked', {
-      transactionUuid,
-      status: response.data.status,
-      refId: response.data.ref_id
-    });
-
+    // In development/test with local URL, we might mock this
+    // But assuming the standard eSewa API
+    
+    logger.info(`Checking payment status for ${transactionId}`);
+    
+    const response = await axios.get(url, { params });
+    
+    // eSewa status format: { status: "COMPLETE", ref_id: "...", ... }
+    const status = response.data.status;
+    
     return {
       success: true,
-      status: response.data.status,
-      refId: response.data.ref_id,
-      productCode: response.data.product_code,
-      transactionUuid: response.data.transaction_uuid,
-      totalAmount: response.data.total_amount
+      status: status,
+      details: response.data
     };
   } catch (error) {
-    logger.error('Payment status check failed:', error);
+    logger.error(`Error checking payment status for ${transactionId}:`, error.message);
+    // Return graceful failure
     return {
       success: false,
       error: error.message
@@ -259,38 +101,49 @@ const checkPaymentStatus = async (transactionUuid, totalAmount) => {
 };
 
 /**
- * Process refund (if eSewa API supports it)
+ * Process Refund
+ * This is a partial stub since eSewa refund API is not fully detailed here.
+ * Implementing as a record-keeping function mainly.
  */
-const processRefund = async (refundData) => {
+const processRefund = async ({ transactionId, amount, refundId }) => {
   try {
-    // Note: eSewa refund implementation depends on their API
-    // This is a placeholder for refund logic
-    logger.info('Refund request received', refundData);
+    logger.info(`Processing refund for transaction ${transactionId}, amount: ${amount}`);
     
-    // In a real implementation, you would call eSewa's refund API here
-    // For now, return a mock response
+    // Here logic to contact eSewa API for refund would go
+    // Since we don't have the specific endpoint in env, we simulate success
+    // or log it.
+    
+    // Assuming success for internal tracking
     return {
       success: true,
-      refundId: generateTransactionId(),
-      amount: refundData.amount,
-      status: 'processed'
+      refundId: refundId || uuidv4(),
+      status: 'PROCESSED',
+      timestamp: new Date()
     };
   } catch (error) {
-    logger.error('Refund processing failed:', error);
+    logger.error('Error processing refund:', error);
     throw error;
+  }
+};
+
+// Verify eSewa Signature (for webhooks)
+const verifyEsewaSignature = (data) => {
+  try {
+    const { total_amount, transaction_uuid, product_code, signature } = data;
+    
+    const message = `${total_amount},${transaction_uuid},${product_code}`;
+    const expectedSignature = generateSignature(message);
+    
+    return signature === expectedSignature;
+  } catch (error) {
+    logger.error('Error verifying signature:', error);
+    return false;
   }
 };
 
 module.exports = {
   generateEsewaPaymentUrl,
-  verifyEsewaPayment,
   checkPaymentStatus,
-  processRefund
+  processRefund,
+  verifyEsewaSignature
 };
-
-
-
-
-
-
-
