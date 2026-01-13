@@ -49,25 +49,36 @@ const HeroSection = () => {
   });
 
   // Handle different response structures
+  const now = new Date();
   let latestEvents = [];
   if (eventsData) {
     const responseData = eventsData.data;
     if (responseData) {
+      let allEvents = [];
       if (responseData.success && responseData.data) {
         if (Array.isArray(responseData.data)) {
-          latestEvents = responseData.data.filter(e => e.status === 'published').slice(0, 4);
+          allEvents = responseData.data;
         } else if (responseData.data.events && Array.isArray(responseData.data.events)) {
-          latestEvents = responseData.data.events.filter(e => e.status === 'published').slice(0, 4);
+          allEvents = responseData.data.events;
         } else if (responseData.data.data && Array.isArray(responseData.data.data)) {
-          latestEvents = responseData.data.data.filter(e => e.status === 'published').slice(0, 4);
+          allEvents = responseData.data.data;
         }
       } else if (responseData.data && Array.isArray(responseData.data)) {
-        latestEvents = responseData.data.filter(e => e.status === 'published').slice(0, 4);
+        allEvents = responseData.data;
       } else if (responseData.events && Array.isArray(responseData.events)) {
-        latestEvents = responseData.events.filter(e => e.status === 'published').slice(0, 4);
+        allEvents = responseData.events;
       } else if (Array.isArray(responseData)) {
-        latestEvents = responseData.filter(e => e.status === 'published').slice(0, 4);
+        allEvents = responseData;
       }
+      
+      // Filter: published status AND end date not in the past
+      latestEvents = allEvents
+        .filter(e => {
+          const isPublished = e.status === 'published' || e.status === 'PUBLISHED';
+          const isNotPast = e.endDate ? new Date(e.endDate) >= now : true;
+          return isPublished && isNotPast;
+        })
+        .slice(0, 4);
     }
   }
 

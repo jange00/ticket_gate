@@ -2,8 +2,8 @@ import { useState } from "react";
 import { FiCreditCard, FiSmartphone, FiShoppingBag, FiLock, FiCheck } from "react-icons/fi";
 
 const ESEWA_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/f/ff/Esewa_logo.webp";
+const PAYPAL_LOGO_URL = "https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_111x69.jpg";
 
-// We can add more methods later
 const paymentMethods = [
   {
     id: "esewa",
@@ -12,6 +12,14 @@ const paymentMethods = [
     logo: ESEWA_LOGO_URL,
     description: "Pay with eSewa wallet",
     color: "from-green-500 to-green-600",
+  },
+  {
+    id: "paypal",
+    name: "PayPal",
+    icon: FiCreditCard,
+    logo: PAYPAL_LOGO_URL,
+    description: "Pay with PayPal account",
+    color: "from-blue-500 to-blue-600",
   }
 ];
 

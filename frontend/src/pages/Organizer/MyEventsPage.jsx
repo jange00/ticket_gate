@@ -95,16 +95,31 @@ const MyEventsPage = () => {
 
   console.log('MyEventsPage - Extracted events:', events.length, events);
 
-  // Filter events by search query
-  const filteredEvents = events.filter(event => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      event.title?.toLowerCase().includes(query) ||
-      event.description?.toLowerCase().includes(query) ||
-      event.venue?.name?.toLowerCase().includes(query)
-    );
-  });
+  // Filter events by search query and add status indicators
+  const now = new Date();
+  const filteredEvents = events
+    .map(event => {
+      // Add computed status for past events
+      const endDate = event.endDate ? new Date(event.endDate) : null;
+      const isPast = endDate && endDate < now;
+      return {
+        ...event,
+        _computedStatus: isPast ? 'past' : (event.status || 'draft'),
+        _isPast: isPast
+      };
+    })
+    .filter(event => {
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = (
+          event.title?.toLowerCase().includes(query) ||
+          event.description?.toLowerCase().includes(query) ||
+          event.venue?.name?.toLowerCase().includes(query)
+        );
+        if (!matchesSearch) return false;
+      }
+      return true;
+    });
 
   const handleDelete = () => {
     if (deleteEventId) {
@@ -248,15 +263,16 @@ const MyEventsPage = () => {
                         </div>
                       </Table.Cell>
                       <Table.Cell>
-                        <Badge 
-                          variant={
-                            event.status === 'published' ? 'success' :
-                            event.status === 'draft' ? 'default' :
-                            event.status === 'cancelled' ? 'danger' : 'default'
-                          }
-                        >
-                          {event.status}
-                        </Badge>
+                          <Badge
+                            variant={
+                              event._isPast ? 'default' :
+                              event.status === 'published' ? 'success' :
+                              event.status === 'draft' ? 'default' :
+                              event.status === 'cancelled' ? 'danger' : 'default'
+                            }
+                          >
+                            {event._isPast ? 'Past' : (event.status || 'draft')}
+                          </Badge>
                       </Table.Cell>
                       <Table.Cell>
                         <div className="flex items-center gap-2">

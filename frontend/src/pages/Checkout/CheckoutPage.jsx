@@ -10,7 +10,7 @@ import Input from '../../components/ui/Input';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiCreditCard, FiLock, FiCalendar, FiMapPin, FiTag, FiCheck, FiShield } from 'react-icons/fi';
+import { FiArrowLeft, FiCreditCard, FiLock, FiCalendar, FiMapPin, FiTag, FiCheck, FiShield, FiInfo } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { paymentsApi } from '../../api/payments.api';
 import PaymentMethod from '../../components/PaymentMethod';
@@ -29,7 +29,7 @@ const CheckoutPage = () => {
     enabled: !!eventId,
   });
 
-  const initiatePaymentMutation = useMutation({
+  const initiateEsewaMutation = useMutation({
     mutationFn: (data) => paymentsApi.initiateEsewa(data),
     onSuccess: (response) => {
       console.log('eSewa init response:', response);
@@ -46,12 +46,40 @@ const CheckoutPage = () => {
     }
   });
 
+  const initiatePayPalMutation = useMutation({
+    mutationFn: (data) => paymentsApi.initiatePayPal(data),
+    onSuccess: (response) => {
+      // console.log('PayPal init response:', response);
+      if (response.data?.success && response.data?.data) {
+        const { approvalUrl } = response.data.data;
+        // Redirect to PayPal approval page
+        window.location.href = approvalUrl;
+      } else {
+        toast.error('Invalid response from payment gateway');
+      }
+    },
+    onError: (error) => {
+      console.error('PayPal initiation failed:', error);
+      toast.error(error.response?.data?.message || 'Failed to initiate PayPal payment');
+    }
+  });
+
   const submitEsewaForm = (actionUrl, formData) => {
+    // console.log('🚀 SUBMITTING TO ESEWA');
+    // console.log('Action URL:', actionUrl);
+    // console.log('Form Data:', formData);
+    console.log('You will now be redirected to eSewa payment page.');
+    console.log('⚠️ IMPORTANT: Complete the payment on eSewa, do NOT cancel or close the window!');
+    console.log('💡 TIP: If you see a "428 Precondition Required" error on eSewa login page, ensure you have enabled third-party cookies or try a different browser.');
+    
+    // Create hidden form to submit to eSewa payment gateway
     const form = document.createElement("form");
     form.setAttribute("method", "POST");
     form.setAttribute("action", actionUrl);
+    form.setAttribute("target", "_self"); // Ensure form submits in same window
     form.style.display = "none";
 
+    // Add all form fields
     for (const key in formData) {
       if (formData.hasOwnProperty(key)) {
         const hiddenField = document.createElement("input");
@@ -63,13 +91,19 @@ const CheckoutPage = () => {
     }
 
     document.body.appendChild(form);
+    
+    // NOTE: You may see a 428 error in console after form submission.
+    // This is a known issue when eSewa's internal session is blocked by browser settings 
+    // (like "Block third-party cookies" on localhost). 
+    // If you cannot login, please check your browser cookie settings.
+    
     form.submit();
   };
 
   const createPurchaseMutation = useMutation({
     mutationFn: (data) => purchasesApi.create(data),
     onSuccess: (response) => {
-      console.log('Purchase API Response:', response);
+      // console.log('Purchase API Response:', response);
       
       let purchase = null;
       // Handle various response structures
@@ -83,7 +117,13 @@ const CheckoutPage = () => {
 
       if (purchase && paymentMethod === 'esewa') {
         toast.loading('Redirecting to eSewa...');
-        initiatePaymentMutation.mutate({
+        initiateEsewaMutation.mutate({
+          purchaseId: purchase._id || purchase.id,
+          amount: purchase.totalAmount
+        });
+      } else if (purchase && paymentMethod === 'paypal') {
+        toast.loading('Redirecting to PayPal...');
+        initiatePayPalMutation.mutate({
           purchaseId: purchase._id || purchase.id,
           amount: purchase.totalAmount
         });
@@ -320,6 +360,41 @@ const CheckoutPage = () => {
                     selectedMethod={paymentMethod}
                     onSelect={setPaymentMethod}
                   />
+
+                  {paymentMethod === 'paypal' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-6 p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 space-y-4"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <FiInfo className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-blue-900 mb-1">Currency Conversion</p>
+                          <p className="text-sm text-blue-800 leading-relaxed">
+                            PayPal does not currently support NPR. Your payment will be processed in USD at an exchange rate of <strong>1 USD = 135 NPR</strong>.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between py-3 px-4 bg-white/60 rounded-xl border border-blue-100">
+                        <span className="text-sm font-medium text-blue-700 uppercase tracking-wider">Total in USD</span>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-blue-900 leading-none">
+                            ${(totalAmount / 135).toFixed(2)}
+                          </p>
+                          <p className="text-[10px] font-bold text-blue-500 uppercase mt-1">Converted from {formatCurrency(totalAmount)}</p>
+                        </div>
+                      </div>
+                      
+                      <p className="text-[11px] text-blue-500 text-center italic">
+                        * The final amount on your bank statement may vary slightly based on your bank's exchange rate.
+                      </p>
+                    </motion.div>
+                  )}
                 </motion.div>
 
                 <motion.div
@@ -342,7 +417,7 @@ const CheckoutPage = () => {
                     type="submit"
                     variant="primary"
                     className="w-full py-4 text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
-                    disabled={createPurchaseMutation.isPending}
+                    disabled={createPurchaseMutation.isPending || initiateEsewaMutation.isPending || initiatePayPalMutation.isPending}
                   >
                     {createPurchaseMutation.isPending ? (
                       <span className="flex items-center justify-center gap-3">

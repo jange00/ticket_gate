@@ -66,6 +66,9 @@ import ConfirmationPage from '../pages/Checkout/ConfirmationPage';
 import PurchaseSuccessPage from '../pages/Purchase/PurchaseSuccessPage';
 import PurchaseFailurePage from '../pages/Purchase/PurchaseFailurePage';
 
+// Payment pages
+import PaymentVerifyPage from '../pages/Payment/PaymentVerifyPage';
+
 // Other pages
 import UnauthorizedPage from '../pages/UnauthorizedPage';
 
@@ -209,6 +212,11 @@ const AppRouter = () => {
         >
           <Route index element={<CheckoutPage />} />
           <Route path="confirmation" element={<ConfirmationPage />} />
+        </Route>
+
+        {/* Payment Verification Route */}
+        <Route path="/payment" element={<AppLayout />}>
+          <Route path="verify" element={<PaymentVerifyPage />} />
         </Route>
 
         {/* Purchase Result Routes */}

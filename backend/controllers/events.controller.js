@@ -44,6 +44,9 @@ const getEvents = async (req, res, next) => {
     }
     if (endDate) {
       query.endDate = { $lte: new Date(endDate) };
+    } else {
+      // Exclude events with past end dates (only for public listings when endDate not specified)
+      query.endDate = { $gte: new Date() };
     }
 
     // Get events
@@ -147,11 +150,11 @@ const createEvent = async (req, res, next) => {
       // Continue with original URLs if upload fails (graceful degradation)
     }
 
-    // Create event
+    // Create event - always start as DRAFT regardless of payload
     const event = await Event.create({
       ...eventData,
       organizerId: userId,
-      status: EVENT_STATUS.DRAFT
+      status: EVENT_STATUS.DRAFT // Always create as draft, must publish separately
     });
 
     // Create ticket types if provided

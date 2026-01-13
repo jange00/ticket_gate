@@ -11,7 +11,28 @@ import { FiXCircle, FiArrowLeft, FiHome, FiRefreshCw, FiCalendar, FiTag, FiDolla
 const PurchaseFailurePage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const transactionId = searchParams.get('transactionId');
+  
+  // Extract transaction ID from various eSewa callback parameters
+  const transactionIdParam = searchParams.get('transactionId');
+  const oid = searchParams.get('oid'); // eSewa legacy param
+  const dataParam = searchParams.get('data'); // eSewa V2 param (Base64 encoded)
+  
+  // Function to extract transaction ID from eSewa V2 data parameter
+  const getTransactionId = () => {
+    if (transactionIdParam) return transactionIdParam;
+    if (oid) return oid;
+    if (dataParam) {
+      try {
+        const decoded = JSON.parse(atob(dataParam));
+        return decoded.transaction_uuid || decoded.transactionId;
+      } catch (e) {
+        console.error('Failed to decode eSewa data param', e);
+      }
+    }
+    return null;
+  };
+
+  const transactionId = getTransactionId();
 
   // Optionally fetch purchase details
   const { data: purchaseData, isLoading: isLoadingPurchase } = useQuery({
@@ -85,7 +106,7 @@ const PurchaseFailurePage = () => {
                   Purchase Details
                 </h2>
                 <div className="space-y-4">
-                  {purchase.event && (
+                  {(purchase.eventId || purchase.event) && (
                     <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-white border border-blue-200">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-blue-100 rounded-lg mt-0.5">
@@ -93,9 +114,9 @@ const PurchaseFailurePage = () => {
                         </div>
                         <div className="flex-1">
                           <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Event</p>
-                          <p className="font-bold text-gray-900 text-lg">{purchase.event.title}</p>
-                          {purchase.event.startDate && (
-                            <p className="text-sm text-gray-600 mt-1">{formatDateTime(purchase.event.startDate)}</p>
+                          <p className="font-bold text-gray-900 text-lg">{(purchase.eventId || purchase.event)?.title}</p>
+                          {((purchase.eventId || purchase.event)?.startDate) && (
+                            <p className="text-sm text-gray-600 mt-1">{formatDateTime((purchase.eventId || purchase.event).startDate)}</p>
                           )}
                         </div>
                       </div>

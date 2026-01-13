@@ -170,15 +170,39 @@ const getPurchaseById = async (req, res, next) => {
 
 /**
  * Get purchase by transaction ID (for payment verification)
+ * Searches by both transactionId and esewaTransactionId
  */
 const getPurchaseByTransactionId = async (req, res, next) => {
   try {
     const { transactionId } = req.params;
     const userId = req.user.userId;
 
-    const purchase = await Purchase.findOne({ transactionId })
+    // Try to find by transactionId first (original transaction ID)
+    let purchase = await Purchase.findOne({ transactionId })
       .populate('eventId', 'title startDate imageUrl')
       .populate('tickets.ticketTypeId', 'name price');
+
+    // If not found, try searching by esewaTransactionId (eSewa transaction UUID)
+    // This handles cases where eSewa sends back the transaction_uuid in callbacks
+    if (!purchase) {
+      purchase = await Purchase.findOne({ esewaTransactionId: transactionId })
+        .populate('eventId', 'title startDate imageUrl')
+        .populate('tickets.ticketTypeId', 'name price');
+    }
+
+    // Also try to extract original transactionId from esewaTransactionId format
+    // eSewa format: ${originalTransactionId}-${timestamp}
+    // Example: TXN-1768143966707-69D53F8A08B5FACD-1768143966727
+    if (!purchase && transactionId.includes('-')) {
+      const parts = transactionId.split('-');
+      if (parts.length >= 3) {
+        // Reconstruct original transactionId (everything except the last part which is the timestamp)
+        const originalTransactionId = parts.slice(0, -1).join('-');
+        purchase = await Purchase.findOne({ transactionId: originalTransactionId })
+          .populate('eventId', 'title startDate imageUrl')
+          .populate('tickets.ticketTypeId', 'name price');
+      }
+    }
 
     if (!purchase) {
       throw new AppError(ERROR_MESSAGES.NOT_FOUND, HTTP_STATUS.NOT_FOUND);

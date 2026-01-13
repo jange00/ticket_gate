@@ -82,6 +82,9 @@ const purchaseSchema = new mongoose.Schema({
   esewaTransactionId: {
     type: String
   },
+  paypalOrderId: {
+    type: String
+  },
   paymentId: {
     type: String
   },
@@ -92,6 +95,9 @@ const purchaseSchema = new mongoose.Schema({
     type: Date
   },
   esewaResponse: {
+    type: mongoose.Schema.Types.Mixed
+  },
+  paypalResponse: {
     type: mongoose.Schema.Types.Mixed
   },
   checkedIn: {
@@ -126,6 +132,7 @@ purchaseSchema.index({ userId: 1, status: 1 });
 purchaseSchema.index({ eventId: 1, status: 1 });
 // transactionId is already indexed via unique: true
 purchaseSchema.index({ paymentId: 1 });
+purchaseSchema.index({ paypalOrderId: 1 });
 purchaseSchema.index({ createdAt: -1 });
 
 const Purchase = mongoose.model('Purchase', purchaseSchema);

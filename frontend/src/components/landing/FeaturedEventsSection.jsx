@@ -15,32 +15,43 @@ const FeaturedEventsSection = () => {
   });
 
   // Handle different response structures
+  const now = new Date();
   let featuredEvents = [];
   if (eventsData) {
     const responseData = eventsData.data; // Axios wraps response in .data
     if (responseData) {
+      let allEvents = [];
       // Handle { success: true, data: { events: [...] } }
       if (responseData.success && responseData.data) {
         if (Array.isArray(responseData.data)) {
-          featuredEvents = responseData.data.filter(e => e.status === 'published').slice(0, 6);
+          allEvents = responseData.data;
         } else if (responseData.data.events && Array.isArray(responseData.data.events)) {
-          featuredEvents = responseData.data.events.filter(e => e.status === 'published').slice(0, 6);
+          allEvents = responseData.data.events;
         } else if (responseData.data.data && Array.isArray(responseData.data.data)) {
-          featuredEvents = responseData.data.data.filter(e => e.status === 'published').slice(0, 6);
+          allEvents = responseData.data.data;
         }
       }
       // Handle { success: true, data: [...] } directly
       else if (responseData.data && Array.isArray(responseData.data)) {
-        featuredEvents = responseData.data.filter(e => e.status === 'published').slice(0, 6);
+        allEvents = responseData.data;
       }
       // Handle { events: [...] }
       else if (responseData.events && Array.isArray(responseData.events)) {
-        featuredEvents = responseData.events.filter(e => e.status === 'published').slice(0, 6);
+        allEvents = responseData.events;
       }
       // Handle direct array
       else if (Array.isArray(responseData)) {
-        featuredEvents = responseData.filter(e => e.status === 'published').slice(0, 6);
+        allEvents = responseData;
       }
+      
+      // Filter: published status AND end date not in the past
+      featuredEvents = allEvents
+        .filter(e => {
+          const isPublished = e.status === 'published' || e.status === 'PUBLISHED';
+          const isNotPast = e.endDate ? new Date(e.endDate) >= now : true;
+          return isPublished && isNotPast;
+        })
+        .slice(0, 6);
     }
   }
 

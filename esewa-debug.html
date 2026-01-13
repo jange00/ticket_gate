@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eSewa Payment Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .success { border-left-color: #10b981; background: #f0fdf4; }
+        .error { border-left-color: #ef4444; background: #fef2f2; }
+        .warning { border-left-color: #f59e0b; background: #fffbeb; }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+        }
+        .label {
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 eSewa Payment Debug Tool</h1>
+        
+        <div class="info-box warning">
+            <strong>Purpose:</strong> This page helps diagnose why your eSewa payment is showing as "Payment Failed"
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Current URL Analysis</h2>
+            <div class="label">Full URL:</div>
+            <pre id="fullUrl"></pre>
+            
+            <div class="label">Query Parameters:</div>
+            <pre id="queryParams"></pre>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test eSewa V2 Callback</h2>
+            <p>Click the button below to simulate a successful eSewa V2 payment callback:</p>
+            <button onclick="testSuccessCallback()">✅ Test Success Callback</button>
+            <button onclick="testFailureCallback()">❌ Test Failure Callback</button>
+            <button onclick="testCancelCallback()">🚫 Test Cancel/No Params</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Diagnosis</h2>
+            <div id="diagnosis"></div>
+        </div>
+
+        <div class="info-box">
+            <strong>Expected Behavior:</strong>
+            <ul>
+                <li><strong>eSewa V2 Success:</strong> Should send a <code>data</code> parameter (base64 encoded JSON)</li>
+                <li><strong>eSewa V2 Failure:</strong> May send no parameters or different parameters</li>
+                <li><strong>Your App:</strong> Should handle both cases gracefully</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Analyze current URL
+        function analyzeUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const params = Object.fromEntries(urlParams.entries());
+            
+            document.getElementById('fullUrl').textContent = window.location.href;
+            document.getElementById('queryParams').textContent = JSON.stringify(params, null, 2);
+
+            // Diagnosis
+            const diagnosisDiv = document.getElementById('diagnosis');
+            
+            if (Object.keys(params).length === 0) {
+                diagnosisDiv.innerHTML = `
+                    <div class="info-box warning">
+                        <strong>⚠️ No Parameters Found</strong><br>
+                        This is likely what's happening when you see "Payment Failed".<br>
+                        <strong>Possible causes:</strong>
+                        <ul>
+                            <li>User canceled the payment on eSewa</li>
+                            <li>User closed the eSewa window</li>
+                            <li>Network error during redirect</li>
+                            <li>eSewa test environment issue</li>
+                        </ul>
+                    </div>
+                `;
+            } else if (params.data) {
+                try {
+                    const decoded = JSON.parse(atob(params.data));
+                    diagnosisDiv.innerHTML = `
+                        <div class="info-box success">
+                            <strong>✅ Valid eSewa V2 Response Detected</strong><br>
+                            <strong>Decoded Data:</strong>
+                            <pre>${JSON.stringify(decoded, null, 2)}</pre>
+                            <strong>Status:</strong> ${decoded.status || 'N/A'}<br>
+                            <strong>Transaction UUID:</strong> ${decoded.transaction_uuid || 'N/A'}
+                        </div>
+                    `;
+                } catch (e) {
+                    diagnosisDiv.innerHTML = `
+                        <div class="info-box error">
+                            <strong>❌ Invalid Data Parameter</strong><br>
+                            Error decoding: ${e.message}
+                        </div>
+                    `;
+                }
+            } else {
+                diagnosisDiv.innerHTML = `
+                    <div class="info-box warning">
+                        <strong>⚠️ Unexpected Parameters</strong><br>
+                        Received parameters that don't match eSewa V2 format.
+                    </div>
+                `;
+            }
+        }
+
+        // Test callbacks
+        function testSuccessCallback() {
+            const mockResponse = {
+                transaction_code: "0007KNH",
+                status: "COMPLETE",
+                total_amount: "2.95",
+                transaction_uuid: "TXN-6964b4f583cb3cfe883cd386-1768207605415",
+                product_code: "EPAYTEST",
+                signed_field_names: "total_amount,transaction_uuid,product_code",
+                signature: "gTiup6xaZny5NwEPtR1PxoR8eTaIisu5bWei9rxIiKc="
+            };
+            
+            const encoded = btoa(JSON.stringify(mockResponse));
+            window.location.href = `http://localhost:5173/payment/verify?data=${encodeURIComponent(encoded)}`;
+        }
+
+        function testFailureCallback() {
+            const mockResponse = {
+                transaction_code: "",
+                status: "FAILED",
+                total_amount: "2.95",
+                transaction_uuid: "TXN-6964b4f583cb3cfe883cd386-1768207605415",
+                product_code: "EPAYTEST",
+                signed_field_names: "total_amount,transaction_uuid,product_code",
+                signature: "invalid_signature"
+            };
+            
+            const encoded = btoa(JSON.stringify(mockResponse));
+            window.location.href = `http://localhost:5173/payment/verify?data=${encodeURIComponent(encoded)}`;
+        }
+
+        function testCancelCallback() {
+            // Simulate what happens when user cancels - no parameters
+            window.location.href = `http://localhost:5173/payment/verify`;
+        }
+
+        // Run analysis on page load
+        analyzeUrl();
+    </script>
+</body>
+</html>

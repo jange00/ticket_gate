@@ -28,8 +28,17 @@ module.exports = {
   ESEWA_SECRET_KEY: process.env.ESEWA_SECRET_KEY || '8gBm/:&EnhH.1/q',
   ESEWA_CLIENT_ID: process.env.ESEWA_CLIENT_ID || 'JB0BBQ4aD0UqIThFJwAKBgAXEUkEGQUBBAwdOgABHD4DChwUAB0R',
   ESEWA_CLIENT_SECRET: process.env.ESEWA_CLIENT_SECRET || 'BhwIWQQADhIYSxILExMcAgFXFhcOBwAKBgAXEQ==',
-  ESEWA_BASE_URL: process.env.ESEWA_BASE_URL || 'https://rc-epay.esewa.com.np',
-  ESEWA_API_URL: process.env.ESEWA_API_URL || 'https://rc-epay.esewa.com.np/api/epay/main/v2/form',
+  ESEWA_BASE_URL: process.env.ESEWA_BASE_URL || 'https://uat.esewa.com.np',
+  ESEWA_API_URL: process.env.ESEWA_API_URL || 'https://uat.esewa.com.np/api/epay/main/v2/form',
+  ESEWA_ENV: process.env.ESEWA_ENV || (process.env.NODE_ENV === 'development' ? 'test' : 'production'),
+  CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:5173',
+  
+  // PayPal Payment Gateway
+  PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID || 'AcnpbvL-nqay69eboBK-a2hcQLnkFTQZXbTF0f4UafVwhRYAXe11Z0B3PtFyWCTDH24INY6Cu2U0rhRC',
+  PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET || 'EGZXWncK71BKAfqH7ClPpldekK6kSKvO9yIk0Loz36CkdM7uLC_vuE5mjbGjRhJhBT5BeOYyBB-_p6WW',
+  PAYPAL_MODE: process.env.PAYPAL_MODE || 'sandbox', // 'sandbox' or 'live'
+  PAYPAL_API_BASE_URL: process.env.PAYPAL_API_BASE_URL || 'https://api-m.sandbox.paypal.com',
+  PAYPAL_EXCHANGE_RATE: parseFloat(process.env.PAYPAL_EXCHANGE_RATE || '135'), // 1 USD = 135 NPR
   
   // Email
   EMAIL_HOST: process.env.EMAIL_HOST || 'smtp.gmail.com',

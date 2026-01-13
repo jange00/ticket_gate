@@ -49,8 +49,13 @@ const EventListPage = () => {
     }
   }
 
-  // Filter to only published events
-  events = events.filter(e => e.status === 'published' || e.status === 'PUBLISHED');
+  // Filter to only published events and exclude past events
+  const now = new Date();
+  events = events.filter(e => {
+    const isPublished = e.status === 'published' || e.status === 'PUBLISHED';
+    const isNotPast = e.endDate ? new Date(e.endDate) >= now : true;
+    return isPublished && isNotPast;
+  });
 
   // Ensure events is always an array
   if (!Array.isArray(events)) {
