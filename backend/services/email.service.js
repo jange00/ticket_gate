@@ -182,11 +182,64 @@ const sendTicketConfirmationEmail = async (email, name, purchaseDetails) => {
   return sendEmail(email, subject, html);
 };
 
+/**
+ * Send email verification OTP
+ */
+const sendVerificationOTPEmail = async (email, name, otp) => {
+  const subject = `${otp} is your TicketGate verification code`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; padding: 0; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%); color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; letter-spacing: 1px; }
+        .content { padding: 40px; text-align: center; }
+        .otp-container { background-color: #f8f9fa; border: 2px dashed #ff6b00; border-radius: 8px; padding: 20px; margin: 30px 0; display: inline-block; }
+        .otp-code { font-size: 42px; font-weight: bold; color: #ff6b00; letter-spacing: 12px; margin-left: 12px; }
+        .footer { text-align: center; padding: 25px; font-size: 13px; color: #888; background-color: #f8f9fa; }
+        .divider { height: 1px; background-color: #eee; margin: 20px 0; }
+        .note { color: #666; font-size: 14px; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>TicketGate</h1>
+        </div>
+        <div class="content">
+          <h2>Verify Your Email</h2>
+          <p>Hi ${name},</p>
+          <p>Please use the following 6-digit code to complete your registration. This code will expire in 10 minutes.</p>
+          
+          <div class="otp-container">
+            <span class="otp-code">${otp}</span>
+          </div>
+          
+          <p class="note">If you didn't request this code, you can safely ignore this email.</p>
+          <div class="divider"></div>
+          <p>Welcome aboard!<br><strong>The TicketGate Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>&copy; ${new Date().getFullYear()} TicketGate. All rights reserved.</p>
+          <p>Secure ticketing for your favorite events.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(email, subject, html);
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
   sendPasswordResetEmail,
-  sendTicketConfirmationEmail
+  sendTicketConfirmationEmail,
+  sendVerificationOTPEmail
 };
 
 

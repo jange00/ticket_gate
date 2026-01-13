@@ -65,7 +65,7 @@ const RegisterForm = () => {
           }
           
           await register(registrationData);
-          navigate('/login');
+          navigate(`/verify-email?email=${encodeURIComponent(values.email)}`);
         } catch (error) {
           if (error.response?.data?.errors) {
             Object.keys(error.response.data.errors).forEach((key) => {

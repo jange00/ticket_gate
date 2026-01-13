@@ -4,25 +4,29 @@ const PasswordHistory = require('../../models/PasswordHistory');
 const ActivityLog = require('../../models/ActivityLog');
 const { hashPassword, calculatePasswordExpiration } = require('../../services/password.service');
 const { generateTokenPair } = require('../../services/auth.service');
-const { sendWelcomeEmail } = require('../../services/email.service');
-const { getClientIp, getUserAgent } = require('../../utils/helpers');
+const { sendVerificationOTPEmail } = require('../../services/email.service');
+const { getClientIp, getUserAgent, generateRandomString } = require('../../utils/helpers');
 const { isValidEmail, isValidPassword } = require('../../utils/validators');
-const { HTTP_STATUS, SUCCESS_MESSAGES, ACTIVITY_TYPES } = require('../../utils/constants');
+const { HTTP_STATUS, SUCCESS_MESSAGES, ACTIVITY_TYPES, ROLES } = require('../../utils/constants');
 const { AppError } = require('../../middleware/errorHandler.middleware');
 const logger = require('../../services/logging.service');
 const config = require('../../config/env');
+const crypto = require('crypto');
 
 /**
  * Register new user
  */
 const register = async (req, res, next) => {
   try {
-    const { email, password, firstName, lastName, phone } = req.body;
+    const { email, password, firstName, lastName, phone, role } = req.body;
 
     // Validate email
     if (!isValidEmail(email)) {
       throw new AppError('Invalid email format', HTTP_STATUS.BAD_REQUEST);
     }
+
+    // Validate role if provided (default to user)
+    const userRole = role && Object.values(ROLES).includes(role) ? role : ROLES.USER;
 
     // Validate password
     const passwordValidation = isValidPassword(password, config.PASSWORD_MIN_LENGTH);
@@ -40,15 +44,23 @@ const register = async (req, res, next) => {
     const hashedPassword = await hashPassword(password);
     const now = new Date();
 
-    // Create user with password expiration
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Create user with password expiration and OTP
     const user = await User.create({
       email: email.toLowerCase(),
       password: hashedPassword,
       firstName,
       lastName,
       phone,
+      role: userRole,
       passwordChangedAt: now,
-      passwordExpiresAt: calculatePasswordExpiration(now)
+      passwordExpiresAt: calculatePasswordExpiration(now),
+      isEmailVerified: false,
+      emailVerificationToken: otp,
+      emailVerificationExpires: otpExpires
     });
 
     // Save password to history (keep last 5 passwords)
@@ -61,45 +73,30 @@ const register = async (req, res, next) => {
     await ActivityLog.create({
       userId: user._id,
       activityType: ACTIVITY_TYPES.REGISTRATION,
-      description: 'User registered',
+      description: `User registered as ${userRole}`,
       ipAddress: getClientIp(req),
       userAgent: getUserAgent(req)
     });
 
-    // Send welcome email (async, don't wait)
-    sendWelcomeEmail(user.email, user.firstName).catch(err => {
-      logger.error('Failed to send welcome email:', err);
+    // Send verification OTP email (async, don't wait)
+    sendVerificationOTPEmail(user.email, user.firstName, otp).catch(err => {
+      logger.error('Failed to send verification email:', err);
     });
 
-    // Generate tokens
-    const tokens = generateTokenPair({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role
-    });
-
-    // Create session
-    await Session.create({
-      userId: user._id,
-      sessionToken: tokens.sessionToken,
-      refreshToken: tokens.refreshToken,
-      ipAddress: getClientIp(req),
-      userAgent: getUserAgent(req),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-    });
+    // Dev Fallback: Print OTP to console for easy testing
+    if (config.NODE_ENV === 'development') {
+      console.log('\n==========================================');
+      console.log('  DEVELOPMENT OTP: ', otp);
+      console.log('  EMAIL: ', user.email);
+      console.log('==========================================\n');
+    }
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
-      message: SUCCESS_MESSAGES.REGISTRATION_SUCCESS,
+      message: 'Registration successful. Please check your email for the verification code.',
       data: {
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role
-        },
-        ...tokens
+        email: user.email,
+        verificationRequired: true
       }
     });
   } catch (error) {

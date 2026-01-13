@@ -30,5 +30,6 @@ module.exports = {
   disableMFA: mfaController.disableMFA,
   
   // Verification
-  verifyEmail: verificationController.verifyEmail
+  verifyEmail: verificationController.verifyEmail,
+  resendOTP: verificationController.resendOTP
 };

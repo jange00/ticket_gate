@@ -57,12 +57,10 @@ const userSchema = new mongoose.Schema({
     default: false
   },
   emailVerificationToken: {
-    type: String,
-    select: false
+    type: String
   },
   emailVerificationExpires: {
-    type: Date,
-    select: false
+    type: Date
   },
   passwordChangedAt: {
     type: Date,
@@ -110,7 +108,6 @@ const userSchema = new mongoose.Schema({
     transform: function(doc, ret) {
       delete ret.password;
       delete ret.mfaSecret;
-      delete ret.emailVerificationToken;
       delete ret.passwordResetToken;
       delete ret.passwordResetExpires;
       delete ret.loginAttempts;

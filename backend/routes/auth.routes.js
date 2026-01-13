@@ -187,10 +187,25 @@ router.post(
 router.post(
   '/verify-email',
   [
-    body('token').notEmpty()
+    body('email').isEmail().normalizeEmail(),
+    body('otp').isLength({ min: 6, max: 6 }).isNumeric()
   ],
   validate,
   authController.verifyEmail
+);
+
+/**
+ * @route   POST /api/auth/resend-otp
+ * @desc    Resend verification OTP
+ * @access  Public
+ */
+router.post(
+  '/resend-otp',
+  [
+    body('email').isEmail().normalizeEmail()
+  ],
+  validate,
+  authController.resendOTP
 );
 
 module.exports = router;

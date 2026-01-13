@@ -26,6 +26,8 @@ export const authApi = {
   verifyMFA: (data) => client.post('/auth/mfa/verify', data),
   
   disableMFA: (data) => client.post('/auth/mfa/disable', data),
+  
+  resendOTP: (data) => client.post('/auth/resend-otp', data),
 };
 
 

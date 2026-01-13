@@ -233,6 +233,17 @@ export const authService = {
       throw error;
     }
   },
+  
+  resendOTP: async (data) => {
+    try {
+      const response = await authApi.resendOTP(data);
+      if (response.data.success) {
+        showSuccessToast(response.data.message || 'OTP resent successfully');
+      }
+      return response.data;
+    } catch (error) {
+      showErrorToast(error);
+      throw error;
+    }
+  },
 };
-
-
