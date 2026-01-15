@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(authService.isAuthenticated());
   const [tempUser, setTempUser] = useState(null); // Temporary user from login response
   const queryClient = useQueryClient();
-  
+
   // Fetch user profile
   const { data: profileData, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile'],
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
     enabled: isAuthenticated,
     retry: false,
   });
-  
+
   // Extract user from profile data
   // API response structure: { success: true, data: { id, email, role, ... } }
   // profileData is response.data which is { success: true, data: {...} }
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
         tempUser,
       });
     }
-    
+
     // Check if profileData has the nested structure
     if (profileData.success && profileData.data) {
       userFromProfile = profileData.data;
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
       // If profileData itself is the user object (no wrapper)
       userFromProfile = profileData;
     }
-    
+
     // Validate that userFromProfile has actual data (not empty object)
     if (userFromProfile && Object.keys(userFromProfile).length === 0) {
       if (import.meta.env.DEV) {
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
       userFromProfile = null;
     }
   }
-  
+
   // Use profile data if it has a role, otherwise use temp user from login
   // This prevents empty profile data from overwriting valid login user data
   // Priority: profile with role > tempUser > profile without role
@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
   } else if (tempUser) {
     user = tempUser;
   }
-  
+
   // Log final user selection
   if (import.meta.env.DEV && user) {
     console.log('Final user selected:', {
@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }) => {
       hasRole: !!user.role,
     });
   }
-  
+
   // Enhanced debug logging
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -207,13 +207,13 @@ export const AuthProvider = ({ children }) => {
         // For now, return the status so the login form can navigate
         return { twoFactorRequired: true, email: data.email, message: data.message };
       }
-      
+
       setIsAuthenticated(true);
-      
+
       // If login response includes user data, use it immediately
       if (data?.data?.user) {
         const loginUser = data.data.user;
-        
+
         // Log full login response for debugging
         if (import.meta.env.DEV) {
           console.log('Login Response - Full:', {
@@ -224,15 +224,15 @@ export const AuthProvider = ({ children }) => {
             role: loginUser?.role,
           });
         }
-        
+
         setTempUser(loginUser);
-        
+
         // Store user data in query cache with correct structure matching API response
-        queryClient.setQueryData(['profile'], { 
+        queryClient.setQueryData(['profile'], {
           success: true,
           data: loginUser  // Store user directly in data field
         });
-        
+
         // Log for debugging
         if (import.meta.env.DEV) {
           console.log('Login user data stored in cache:', {
@@ -241,7 +241,7 @@ export const AuthProvider = ({ children }) => {
             cacheData: queryClient.getQueryData(['profile']),
           });
         }
-        
+
         // Redirect immediately if we have user data
         if (loginUser.role) {
           setTimeout(() => {
@@ -259,12 +259,12 @@ export const AuthProvider = ({ children }) => {
           });
         }
       }
-      
+
       // Invalidate and refetch profile to ensure we have latest data
       await queryClient.invalidateQueries(['profile']);
       try {
         const profileResponse = await queryClient.fetchQuery(['profile']);
-        
+
         // Log profile response for debugging
         if (import.meta.env.DEV) {
           console.log('Profile refetched after login:', {
@@ -275,7 +275,7 @@ export const AuthProvider = ({ children }) => {
             profileResponseDataRole: profileResponse?.data?.role,
           });
         }
-        
+
         // Update temp user with fresh profile data only if it has a role
         if (profileResponse?.success && profileResponse?.data && profileResponse.data.role) {
           setTempUser(null); // Clear temp user, use profile data
@@ -294,7 +294,7 @@ export const AuthProvider = ({ children }) => {
         console.error('Error fetching profile after login:', error);
         // Keep using temp user if profile fetch fails
       }
-      
+
       return data;
     },
   });
@@ -307,7 +307,7 @@ export const AuthProvider = ({ children }) => {
       if (data?.data?.user) {
         const loginUser = data.data.user;
         setTempUser(loginUser);
-        queryClient.setQueryData(['profile'], { 
+        queryClient.setQueryData(['profile'], {
           success: true,
           data: loginUser
         });
@@ -320,6 +320,44 @@ export const AuthProvider = ({ children }) => {
       await queryClient.invalidateQueries(['profile']);
       return data;
     }
+  });
+
+  // Google Login mutation
+  const googleLoginMutation = useMutation({
+    mutationFn: authService.googleLogin,
+    onSuccess: async (data) => {
+      setIsAuthenticated(true);
+
+      if (data?.data?.user) {
+        const loginUser = data.data.user;
+
+        // Log debug info
+        if (import.meta.env.DEV) {
+          console.log('Google Login Response:', {
+            data,
+            user: loginUser
+          });
+        }
+
+        setTempUser(loginUser);
+
+        // Update cache
+        queryClient.setQueryData(['profile'], {
+          success: true,
+          data: loginUser
+        });
+
+        // Redirect
+        if (loginUser.role) {
+          setTimeout(() => {
+            redirectByRole(loginUser.role);
+          }, 100);
+        }
+      }
+
+      await queryClient.invalidateQueries(['profile']);
+      return data;
+    },
   });
 
   // Note: Redirect after login is now handled in loginMutation.onSuccess
@@ -370,6 +408,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     isLoading,
     login: loginMutation.mutateAsync,
+    loginWithGoogle: googleLoginMutation.mutateAsync,
     verify2FALogin: verify2FALoginMutation.mutateAsync,
     logout: async () => {
       await logoutMutation.mutateAsync();

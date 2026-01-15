@@ -15,7 +15,7 @@ const PurchaseSuccessPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const transactionIdParam = searchParams.get('transactionId');
-  
+
   // eSewa params
   // eSewa params
   const oid = searchParams.get('oid');
@@ -29,20 +29,20 @@ const PurchaseSuccessPage = () => {
   // Determine effective transaction ID for UI
   // V2: we need to decode 'data' to get the transaction ID locally if we want to show it before verification
   // But usually we just verify first.
-  
+
   const getTransactionId = () => {
-      if (verifiedTransactionId) return verifiedTransactionId;
-      if (transactionIdParam) return transactionIdParam;
-      if (oid) return oid;
-      if (dataParam) {
-          try {
-              const decoded = JSON.parse(atob(dataParam));
-              return decoded.transaction_uuid;
-          } catch (e) {
-              console.error('Failed to decode data param', e);
-          }
+    if (verifiedTransactionId) return verifiedTransactionId;
+    if (transactionIdParam) return transactionIdParam;
+    if (oid) return oid;
+    if (dataParam) {
+      try {
+        const decoded = JSON.parse(atob(dataParam));
+        return decoded.transaction_uuid;
+      } catch (e) {
+        console.error('Failed to decode data param', e);
       }
-      return null;
+    }
+    return null;
   };
 
   const transactionId = getTransactionId();
@@ -53,13 +53,13 @@ const PurchaseSuccessPage = () => {
     onSuccess: (response) => {
       console.log('Payment verification success:', response);
       if (response.data && response.data.success) {
-         toast.success('Payment verified successfully!');
-         // If backend returns the updated purchase object, we might assume success
-         // But we still need to fetch details or just use what we have.
-         // Let's rely on useQuery to fetch details using the transactionId/oid
-         // Let's rely on useQuery to fetch details using the transactionId/oid
-         // For V2, we might have decoded the transactionId from data
-         setVerifiedTransactionId(transactionId);
+        toast.success('Payment verified successfully!');
+        // If backend returns the updated purchase object, we might assume success
+        // But we still need to fetch details or just use what we have.
+        // Let's rely on useQuery to fetch details using the transactionId/oid
+        // Let's rely on useQuery to fetch details using the transactionId/oid
+        // For V2, we might have decoded the transactionId from data
+        setVerifiedTransactionId(transactionId);
       }
     },
     onError: (error) => {
@@ -71,13 +71,13 @@ const PurchaseSuccessPage = () => {
 
   useEffect(() => {
     if (dataParam && !verifiedTransactionId && !isVerifying) {
-        setIsVerifying(true);
-        verifyPaymentMutation.mutate(
-            { data: dataParam },
-            {
-                onSettled: () => setIsVerifying(false)
-            }
-        );
+      setIsVerifying(true);
+      verifyPaymentMutation.mutate(
+        { data: dataParam },
+        {
+          onSettled: () => setIsVerifying(false)
+        }
+      );
     } else if (oid && refId && amt && !verifiedTransactionId && !isVerifying) {
       setIsVerifying(true);
       verifyPaymentMutation.mutate(
@@ -111,7 +111,26 @@ const PurchaseSuccessPage = () => {
     }
   }
 
-  const tickets = purchase?.tickets || [];
+  // Fetch Tickets for this purchase
+  const { data: ticketsData, isLoading: isLoadingTickets } = useQuery({
+    queryKey: ['purchase-tickets', purchase?._id],
+    queryFn: () => purchasesApi.getTickets(purchase?._id),
+    enabled: !!purchase?._id,
+  });
+
+  let tickets = [];
+  if (ticketsData?.data) {
+    const data = ticketsData.data;
+    if (data.data?.tickets) {
+      tickets = data.data.tickets;
+    } else if (data.tickets) {
+      tickets = data.tickets;
+    } else if (Array.isArray(data.data)) {
+      tickets = data.data;
+    } else if (Array.isArray(data)) {
+      tickets = data;
+    }
+  }
 
   if (isLoadingPurchase || isVerifying) {
     return <Loading fullScreen />;
@@ -244,44 +263,53 @@ const PurchaseSuccessPage = () => {
               </div>
             </div>
 
-            {/* Ticket Summary */}
+            {/* Tickets with QR Codes */}
             {tickets.length > 0 && (
               <div className="pb-6 border-b-2 border-gray-200">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
                     <FiTag className="w-5 h-5 text-white" />
                   </div>
-                  Ticket Summary
+                  Your Tickets
                 </h2>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {tickets.map((ticket, index) => (
                     <motion.div
                       key={ticket._id || index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.1 }}
-                      className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200"
+                      className="flex flex-col p-6 rounded-2xl bg-white border-2 border-orange-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
+                      {/* Decorative elements */}
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-orange-50 rounded-bl-full -mr-8 -mt-8 opacity-50"></div>
+
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
                           <FiTag className="w-5 h-5 text-white" />
                         </div>
                         <div>
                           <p className="font-bold text-gray-900 text-lg">
-                            {ticket.ticketType?.name || `Ticket ${index + 1}`}
+                            {ticket.ticketTypeId?.name || 'Standard Ticket'}
                           </p>
-                          {ticket.ticketType?.price && (
-                            <p className="text-sm text-gray-600 font-medium">
-                              {formatCurrency(ticket.ticketType.price)} per ticket
-                            </p>
-                          )}
+                          <p className="text-sm text-gray-500 font-medium">
+                            Ticket #{index + 1}
+                          </p>
                         </div>
                       </div>
-                      {ticket.ticketType?.price && (
-                        <p className="font-bold text-xl bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">
-                          {formatCurrency(ticket.ticketType.price)}
-                        </p>
-                      )}
+
+                      <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${ticket.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                          {ticket.status}
+                        </span>
+                        <Link
+                          to={`/dashboard/tickets/${ticket._id}`}
+                          className="text-orange-600 hover:text-orange-700 font-bold text-sm flex items-center gap-1"
+                        >
+                          View QR Code →
+                        </Link>
+                      </div>
                     </motion.div>
                   ))}
                 </div>

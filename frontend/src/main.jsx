@@ -15,11 +15,18 @@ const queryClient = new QueryClient({
   },
 });
 
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
+// ID provided by user
+const GOOGLE_CLIENT_ID = "829534860555-6baogq9bhhbo8bstksfd2vnvtf7e1c4h.apps.googleusercontent.com";
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-      <Toaster position="top-right" />
-    </QueryClientProvider>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+        <Toaster position="top-right" />
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   </StrictMode>,
 );

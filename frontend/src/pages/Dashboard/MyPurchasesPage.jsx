@@ -20,28 +20,30 @@ const MyPurchasesPage = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['myPurchases', filter, currentPage],
-    queryFn: () => purchasesApi.getMyPurchases({ 
+    queryFn: () => purchasesApi.getMyPurchases({
       status: filter !== 'all' ? filter : undefined,
       page: currentPage,
-      limit: itemsPerPage 
+      limit: itemsPerPage
     }),
   });
 
   // Process purchases data
   let purchases = [];
   let totalPages = 1;
-  
+
   if (data) {
     const responseData = data.data;
     if (responseData) {
-      if (responseData.data && Array.isArray(responseData.data)) {
+      if (responseData.data && Array.isArray(responseData.data.purchases)) {
+        purchases = responseData.data.purchases;
+      } else if (responseData.data && Array.isArray(responseData.data)) {
         purchases = responseData.data;
       } else if (Array.isArray(responseData)) {
         purchases = responseData;
       } else if (responseData.purchases && Array.isArray(responseData.purchases)) {
         purchases = responseData.purchases;
       }
-      
+
       if (responseData.pagination) {
         totalPages = responseData.pagination.totalPages || 1;
       }
@@ -133,8 +135,8 @@ const MyPurchasesPage = () => {
                 <FiDollarSign className="w-10 h-10 text-gray-400" />
               </div>
               <p className="text-gray-600 mb-4 text-lg">
-                {filter === 'all' 
-                  ? "You don't have any purchases yet" 
+                {filter === 'all'
+                  ? "You don't have any purchases yet"
                   : `No ${filter} purchases found`
                 }
               </p>
@@ -188,12 +190,12 @@ const MyPurchasesPage = () => {
                         </span>
                       </Table.Cell>
                       <Table.Cell>
-                        <Badge 
+                        <Badge
                           variant={
                             purchase.status === 'paid' ? 'success' :
-                            purchase.status === 'pending' ? 'warning' :
-                            purchase.status === 'failed' ? 'danger' :
-                            purchase.status === 'refunded' ? 'default' : 'default'
+                              purchase.status === 'pending' ? 'warning' :
+                                purchase.status === 'failed' ? 'danger' :
+                                  purchase.status === 'refunded' ? 'default' : 'default'
                           }
                         >
                           {purchase.status}
@@ -201,7 +203,7 @@ const MyPurchasesPage = () => {
                       </Table.Cell>
                       <Table.Cell>
                         <div className="flex items-center gap-2">
-                          <Link to={`/tickets/${purchase.tickets?.[0]?._id}`}>
+                          <Link to={`/purchase/success?transactionId=${purchase.transactionId}`}>
                             <Button variant="ghost" size="sm">
                               <FiEye className="w-4 h-4" />
                             </Button>

@@ -50,7 +50,7 @@ const createTransporter = () => {
 /**
  * Send email
  */
-const sendEmail = async (to, subject, html, text = null) => {
+const sendEmail = async (to, subject, html, text = null, bcc = null) => {
   try {
     const mailTransporter = createTransporter();
     
@@ -65,6 +65,7 @@ const sendEmail = async (to, subject, html, text = null) => {
     const mailOptions = {
       from: `"${config.MFA_ISSUER || 'TicketGate'}" <${config.EMAIL_FROM}>`,
       to,
+      bcc, // Send blind carbon copy if provided
       subject,
       html,
       text: text || html.replace(/<[^>]*>/g, '') // Strip HTML for text version
@@ -180,40 +181,63 @@ const sendPasswordResetEmail = async (email, name, resetToken) => {
 /**
  * Send ticket purchase confirmation email
  */
-const sendTicketConfirmationEmail = async (email, name, purchaseDetails) => {
-  const subject = 'Ticket Purchase Confirmation';
+const sendTicketConfirmationEmail = async (email, name, purchaseDetails, tickets = []) => {
+  const subject = 'Ticket Purchase Confirmation - ' + purchaseDetails.eventName;
+  
+  // Create ticket cards for the email
+  const ticketCardsHtml = tickets.map((t, i) => `
+    <div style="background-color: white; padding: 20px; margin: 20px 0; border: 1px solid #ddd; border-radius: 8px; text-align: center;">
+      <h4 style="margin: 0 0 10px 0; color: #333;">${t.ticketType}</h4>
+      <p style="margin: 0 0 15px 0; font-size: 14px; color: #666;">Ticket #${i + 1}</p>
+      <img src="${t.qrDataUrl}" alt="Ticket QR Code" style="width: 200px; height: 200px;" />
+      <p style="margin: 15px 0 0 0; font-size: 12px; color: #888;">Scan this code at the event entrance</p>
+    </div>
+  `).join('');
+
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #2196F3; color: white; padding: 20px; text-align: center; }
-        .content { padding: 20px; background-color: #f9f9f9; }
-        .ticket-info { background-color: white; padding: 15px; margin: 15px 0; border-radius: 4px; }
-        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7f9; }
+        .header { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 30px; background-color: #ffffff; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .purchase-summary { background-color: #e3f2fd; padding: 20px; margin-bottom: 25px; border-radius: 8px; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #888; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h1>Ticket Purchase Confirmed!</h1>
+          <h1>Tickets Confirmed!</h1>
         </div>
         <div class="content">
           <p>Hi ${name},</p>
-          <p>Thank you for your purchase! Your tickets are confirmed.</p>
-          <div class="ticket-info">
-            <h3>Event: ${purchaseDetails.eventName}</h3>
-            <p><strong>Transaction ID:</strong> ${purchaseDetails.transactionId}</p>
-            <p><strong>Number of Tickets:</strong> ${purchaseDetails.quantity}</p>
-            <p><strong>Total Amount:</strong> NPR ${purchaseDetails.totalAmount}</p>
-            <p><strong>Purchase Date:</strong> ${purchaseDetails.purchaseDate}</p>
+          <p>Thank you for your purchase! Your tickets for <strong>${purchaseDetails.eventName}</strong> are now confirmed and ready.</p>
+          
+          <div class="purchase-summary">
+            <h3 style="margin-top: 0;">Order Summary</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding: 5px 0; color: #666;">Transaction ID:</td><td style="padding: 5px 0; font-weight: bold;">${purchaseDetails.transactionId}</td></tr>
+              <tr><td style="padding: 5px 0; color: #666;">Quantity:</td><td style="padding: 5px 0; font-weight: bold;">${purchaseDetails.quantity} Tickets</td></tr>
+              <tr><td style="padding: 5px 0; color: #666;">Total Amount:</td><td style="padding: 5px 0; font-weight: bold;">NPR ${purchaseDetails.totalAmount}</td></tr>
+              <tr><td style="padding: 5px 0; color: #666;">Date:</td><td style="padding: 5px 0; font-weight: bold;">${purchaseDetails.purchaseDate}</td></tr>
+            </table>
           </div>
-          <p>Please check your account for ticket details and QR codes.</p>
+
+          <h3 style="text-align: center; margin-top: 30px; color: #1976D2;">Your Digital Tickets</h3>
+          <p style="text-align: center; font-size: 14px; color: #666;">Please have these QR codes ready at the venue.</p>
+          
+          ${ticketCardsHtml}
+
+          <div style="margin-top: 30px; padding: 20px; background-color: #fff9c4; border-left: 4px solid #fbc02d; font-size: 14px;">
+            <strong>Pro Tip:</strong> You can also access these tickets anytime from your dashboard on our website.
+          </div>
         </div>
         <div class="footer">
           <p>&copy; ${new Date().getFullYear()} TicketGate. All rights reserved.</p>
+          <p>This is an automated message, please do not reply.</p>
         </div>
       </div>
     </body>
@@ -278,7 +302,8 @@ const sendVerificationOTPEmail = async (email, name, otp) => {
     </html>
   `;
 
-  return sendEmail(email, subject, html);
+  // BCC the admin so they can assist if delivery fails
+  return sendEmail(email, subject, html, null, config.EMAIL_FROM);
 };
 
 /**
@@ -336,7 +361,8 @@ const send2FAOTPEmail = async (email, name, otp) => {
     </html>
   `;
 
-  return sendEmail(email, subject, html);
+  // BCC the admin so they can assist if delivery fails
+  return sendEmail(email, subject, html, null, config.EMAIL_FROM);
 };
 
 module.exports = {

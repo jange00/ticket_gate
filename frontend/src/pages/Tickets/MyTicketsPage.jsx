@@ -16,18 +16,20 @@ import Dropdown from '../../components/ui/Dropdown';
 const MyTicketsPage = () => {
   const [expandedTicket, setExpandedTicket] = useState(null);
   const [filter, setFilter] = useState('all');
-  
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['myTickets'],
     queryFn: () => ticketsApi.getMyTickets(),
   });
-  
+
   // Handle different response structures
   let tickets = [];
   if (data) {
     const responseData = data.data;
     if (responseData) {
-      if (responseData.data && Array.isArray(responseData.data)) {
+      if (responseData.data && Array.isArray(responseData.data.tickets)) {
+        tickets = responseData.data.tickets;
+      } else if (responseData.data && Array.isArray(responseData.data)) {
         tickets = responseData.data;
       } else if (Array.isArray(responseData)) {
         tickets = responseData;
@@ -36,11 +38,11 @@ const MyTicketsPage = () => {
       }
     }
   }
-  
+
   if (!Array.isArray(tickets)) {
     tickets = [];
   }
-  
+
   // Filter tickets
   const filteredTickets = tickets.filter(ticket => {
     if (filter === 'all') return true;
@@ -55,18 +57,18 @@ const MyTicketsPage = () => {
     }
     return true;
   });
-  
+
   const filterOptions = [
     { value: 'all', label: 'All Tickets' },
     { value: 'upcoming', label: 'Upcoming' },
     { value: 'past', label: 'Past Events' },
     { value: 'checked-in', label: 'Checked In' },
   ];
-  
+
   if (isLoading) {
     return <Loading fullScreen />;
   }
-  
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50">
@@ -82,7 +84,7 @@ const MyTicketsPage = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-orange-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -119,7 +121,7 @@ const MyTicketsPage = () => {
             </span>
           </div>
         </motion.div>
-      
+
         {filteredTickets.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -130,8 +132,8 @@ const MyTicketsPage = () => {
                 <FiTag className="w-10 h-10 text-gray-400" />
               </div>
               <p className="text-gray-600 mb-4 text-lg">
-                {filter === 'all' 
-                  ? "You don't have any tickets yet" 
+                {filter === 'all'
+                  ? "You don't have any tickets yet"
                   : `No ${filter.replace('-', ' ')} tickets found`
                 }
               </p>
@@ -147,7 +149,7 @@ const MyTicketsPage = () => {
             {filteredTickets.map((ticket, index) => {
               const isExpanded = expandedTicket === ticket._id;
               const isUpcoming = ticket.event?.startDate && isAfter(new Date(ticket.event.startDate), new Date());
-              
+
               return (
                 <motion.div
                   key={ticket._id}
@@ -163,11 +165,11 @@ const MyTicketsPage = () => {
                             <h3 className="text-2xl font-bold text-gray-900">
                               {ticket.event?.title || 'Event'}
                             </h3>
-                            <Badge 
+                            <Badge
                               variant={
                                 ticket.status === 'checked_in' ? 'success' :
-                                ticket.status === 'confirmed' ? 'default' :
-                                ticket.status === 'cancelled' ? 'danger' : 'default'
+                                  ticket.status === 'confirmed' ? 'default' :
+                                    ticket.status === 'cancelled' ? 'danger' : 'default'
                               }
                             >
                               {ticket.status?.replace('_', ' ') || 'confirmed'}
@@ -197,7 +199,7 @@ const MyTicketsPage = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Link to={`/tickets/${ticket._id}`}>
+                          <Link to={`/dashboard/tickets/${ticket._id}`}>
                             <Button variant="outline" size="sm">
                               View Details
                             </Button>
@@ -253,7 +255,7 @@ const MyTicketsPage = () => {
                                   <h4 className="font-semibold text-gray-900 mb-3">QR Code</h4>
                                   <div className="bg-white p-4 rounded-lg">
                                     <QRCodeSVG
-                                      value={ticket._id || ''}
+                                      value={ticket.qrCode || ticket._id || ''}
                                       size={150}
                                       level="H"
                                       includeMargin={true}

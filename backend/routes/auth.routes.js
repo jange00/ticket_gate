@@ -43,6 +43,21 @@ router.post(
 );
 
 /**
+ * @route   POST /api/auth/google
+ * @desc    Login with Google
+ * @access  Public
+ */
+router.post(
+  '/google',
+  loginLimiter,
+  [
+    body('credential').notEmpty()
+  ],
+  validate,
+  authController.googleLogin
+);
+
+/**
  * @route   POST /api/auth/verify-2fa-login
  * @desc    Verify 2FA login OTP
  * @access  Public

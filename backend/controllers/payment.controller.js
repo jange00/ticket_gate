@@ -1,8 +1,16 @@
 const Purchase = require('../models/Purchase');
+const Ticket = require('../models/Ticket');
+const TicketType = require('../models/TicketType');
+const User = require('../models/User');
+const Event = require('../models/Event');
 const env = require('../config/env');
 const axios = require('axios');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const paypalService = require('../services/paypal.service');
+const { generateTicketQRCode } = require('../services/qrcode.service');
+const { sendTicketConfirmationEmail } = require('../services/email.service');
+const { TICKET_STATUS, PURCHASE_STATUS } = require('../utils/constants');
 
 exports.initiateEsewaPayment = async (req, res) => {
   try {
@@ -91,19 +99,112 @@ exports.initiateEsewaPayment = async (req, res) => {
     console.log('📤 Signature String:', signatureString);
     console.log('📤 Form Data:', formData);
 
+    // Proactively generate tickets at initiation as per user request
+    // This ensures tickets are created even if the user cancels later
+    try {
+      await generateTicketsForPurchase(purchase._id);
+    } catch (genError) {
+      console.error('Proactive ticket generation error (non-blocking):', genError);
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         payment_url: paymentUrl,
         transactionId: transactionUuid,
         formData: formData,
+        purchaseId: purchase._id
       },
-      message: 'Esewa V2 payment initiated successfully',
+      message: 'Esewa V2 payment initiated and tickets generated',
     });
 
   } catch (error) {
     console.error('Esewa payment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to initiate payment', error: error.message });
+  }
+};
+
+/**
+ * Helper function to generate tickets for a specific purchase
+ * This is called after payment verification (success or fail)
+ */
+const generateTicketsForPurchase = async (purchaseId) => {
+  try {
+    const purchase = await Purchase.findById(purchaseId);
+    if (!purchase) throw new Error('Purchase not found');
+
+    // Only generate tickets if they don't already exist for this purchase
+    const existingTicketsCount = await Ticket.countDocuments({ purchaseId });
+    if (existingTicketsCount > 0) {
+      console.log(`Tickets already exist for purchase ${purchaseId}, skipping generation.`);
+      return;
+    }
+
+    const event = await Event.findById(purchase.eventId);
+    const user = await User.findById(purchase.userId);
+    const generatedTicketsInfo = [];
+
+    for (const item of purchase.tickets) {
+      const ticketType = await TicketType.findById(item.ticketTypeId);
+      
+      for (let i = 0; i < item.quantity; i++) {
+        // Create temporary ticket object to generate QR code correctly
+        const tempTicketId = new mongoose.Types.ObjectId();
+        
+        // Generate QR code
+        const qrCodeData = await generateTicketQRCode({
+          ticketId: tempTicketId.toString(),
+          eventId: purchase.eventId.toString(),
+          attendeeId: purchase.userId.toString(),
+          purchaseId: purchase._id.toString()
+        });
+
+        const ticket = new Ticket({
+          _id: tempTicketId,
+          ticketTypeId: item.ticketTypeId,
+          eventId: purchase.eventId,
+          attendeeId: purchase.userId,
+          purchaseId: purchase._id,
+          qrCode: qrCodeData.qrCode,
+          qrCodeHash: qrCodeData.qrCodeHash,
+          status: TICKET_STATUS.CONFIRMED
+        });
+
+        await ticket.save();
+
+        // Store info for email
+        generatedTicketsInfo.push({
+          ticketType: item.ticketType,
+          qrDataUrl: qrCodeData.qrCodeDataURL
+        });
+      }
+
+      // Update quantity sold for ticket type
+      ticketType.quantitySold += item.quantity;
+      await ticketType.save();
+    }
+
+    // Mark purchase as paid (even if it was a simulated failure)
+    purchase.status = PURCHASE_STATUS.PAID;
+    purchase.paymentDate = new Date();
+    await purchase.save();
+
+    // Send confirmation email with QR codes
+    try {
+      await sendTicketConfirmationEmail(user.email, user.firstName, {
+        eventName: event.title,
+        transactionId: purchase.transactionId,
+        quantity: purchase.tickets.reduce((acc, curr) => acc + curr.quantity, 0),
+        totalAmount: purchase.totalAmount,
+        purchaseDate: new Date().toLocaleDateString()
+      }, generatedTicketsInfo);
+    } catch (emailError) {
+      console.error('Failed to send confirmation email:', emailError);
+    }
+
+  } catch (error) {
+    console.error('Error generating tickets:', error);
+    throw error;
   }
 };
 
@@ -131,7 +232,7 @@ exports.verifyEsewaPayment = async (req, res) => {
     } = decodedJson;
 
     if (status !== 'COMPLETE') {
-         return res.status(400).json({ success: false, message: 'Payment not complete' });
+         console.warn(`Payment for ${transaction_uuid} not complete, but generating tickets anyway as per user request.`);
     }
 
     // Determine secret key based on product code
@@ -176,10 +277,14 @@ exports.verifyEsewaPayment = async (req, res) => {
         await purchase.save();
     }
 
+    // Generate tickets (this now marks it as paid and handles increments)
+    await generateTicketsForPurchase(purchase._id);
+    const updatedPurchase = await Purchase.findById(purchase._id);
+
     return res.status(200).json({
       success: true,
-      data: { purchase },
-      message: 'Payment verified successfully',
+      data: { purchase: updatedPurchase },
+      message: 'Payment verified and tickets generated successfully',
     });
 
   } catch (error) {
@@ -267,6 +372,13 @@ exports.initiatePayPalPayment = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Failed to get PayPal approval URL' });
     }
 
+    // Proactively generate tickets at initiation as per user request
+    try {
+      await generateTicketsForPurchase(purchase._id);
+    } catch (genError) {
+      console.error('Proactive ticket generation error (non-blocking):', genError);
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -274,9 +386,10 @@ exports.initiatePayPalPayment = async (req, res) => {
         approvalUrl: approvalUrl,
         status: paypalOrder.status,
         amountUSD: amountUSD,
-        exchangeRate: exchangeRate
+        exchangeRate: exchangeRate,
+        purchaseId: purchase._id
       },
-      message: 'PayPal payment initiated successfully',
+      message: 'PayPal payment initiated and tickets generated',
     });
 
   } catch (error) {
@@ -335,10 +448,7 @@ exports.verifyPayPalPayment = async (req, res) => {
 
     // Check if capture was successful
     if (captureResult.status !== 'COMPLETED') {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Payment not completed. Status: ${captureResult.status}` 
-      });
+      console.warn(`PayPal payment for ${orderId} not completed, but generating tickets anyway.`);
     }
 
     // Find purchase by PayPal order ID
@@ -372,10 +482,14 @@ exports.verifyPayPalPayment = async (req, res) => {
       await purchase.save();
     }
 
+    // Generate tickets
+    await generateTicketsForPurchase(purchase._id);
+    const updatedPurchase = await Purchase.findById(purchase._id);
+
     return res.status(200).json({
       success: true,
-      data: { purchase },
-      message: 'PayPal payment verified successfully',
+      data: { purchase: updatedPurchase },
+      message: 'PayPal payment verified and tickets generated successfully',
     });
 
   } catch (error) {

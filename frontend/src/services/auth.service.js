@@ -117,6 +117,28 @@ export const authService = {
       throw error;
     }
   },
+
+  googleLogin: async (credential) => {
+    try {
+      const response = await authApi.googleLogin(credential);
+      
+      if (response.data.success) {
+        if (response.data.data) {
+          const { accessToken, refreshToken, sessionToken, user } = response.data.data;
+          
+          // Store tokens
+          authService.setTokens(accessToken, refreshToken, sessionToken);
+          
+          showSuccessToast('Google login successful');
+          return response.data;
+        }
+      }
+      throw new Error(response.data.message || 'Google login failed');
+    } catch (error) {
+      showErrorToast(error);
+      throw error;
+    }
+  },
   
   logout: async () => {
     try {

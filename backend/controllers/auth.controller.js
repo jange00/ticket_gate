@@ -5,10 +5,14 @@ const profileController = require('./auth/profile.controller');
 const passwordController = require('./auth/password.controller');
 const mfaController = require('./auth/mfa.controller');
 const verificationController = require('./auth/verification.controller');
+const googleController = require('./auth/google.controller');
 
 module.exports = {
   // Registration
   register: registrationController.register,
+
+  // Google OAuth
+  googleLogin: googleController.googleLogin,
   
   // Login/Logout
   login: loginController.login,

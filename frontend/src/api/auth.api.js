@@ -5,6 +5,8 @@ export const authApi = {
   
   login: (data) => client.post('/auth/login', data),
   
+  googleLogin: (credential) => client.post('/auth/google', { credential }),
+  
   refresh: (data) => client.post('/auth/refresh', data),
   
   logout: (data) => client.post('/auth/logout', data),

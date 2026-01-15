@@ -92,19 +92,19 @@ const AppRouter = () => {
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="verify-email" element={<EmailVerificationPage />} />
           <Route path="login/2fa" element={<Verify2FALogin />} />
-          <Route 
-            path="mfa-setup" 
+          <Route
+            path="mfa-setup"
             element={
               <ProtectedRoute>
                 <MFASetupPage />
               </ProtectedRoute>
-            } 
+            }
           />
         </Route>
 
         {/* User Dashboard Routes */}
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <DashboardLayout />
@@ -113,14 +113,15 @@ const AppRouter = () => {
         >
           <Route index element={<DashboardPage />} />
           <Route path="tickets" element={<MyTicketsPage />} />
+          <Route path="tickets/:id" element={<TicketDetailPage />} />
           <Route path="purchases" element={<MyPurchasesPage />} />
           <Route path="refunds" element={<RefundsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* Organizer Routes */}
-        <Route 
-          path="/organizer" 
+        <Route
+          path="/organizer"
           element={
             <RoleRoute roles={['organizer', 'admin']}>
               <OrganizerLayout />
@@ -136,8 +137,8 @@ const AppRouter = () => {
         </Route>
 
         {/* Staff Routes */}
-        <Route 
-          path="/staff" 
+        <Route
+          path="/staff"
           element={
             <RoleRoute roles={['staff', 'admin']}>
               <StaffLayout />
@@ -151,8 +152,8 @@ const AppRouter = () => {
         </Route>
 
         {/* Admin Routes */}
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             <RoleRoute roles={['admin']}>
               <AdminLayout />
@@ -169,8 +170,8 @@ const AppRouter = () => {
         </Route>
 
         {/* Protected Event Creation/Editing */}
-        <Route 
-          path="/events/create" 
+        <Route
+          path="/events/create"
           element={
             <RoleRoute roles={['organizer', 'admin']}>
               <AppLayout />
@@ -180,8 +181,8 @@ const AppRouter = () => {
           <Route index element={<CreateEventPage />} />
         </Route>
 
-        <Route 
-          path="/events/:id/edit" 
+        <Route
+          path="/events/:id/edit"
           element={
             <RoleRoute roles={['organizer', 'admin']}>
               <AppLayout />
@@ -192,8 +193,8 @@ const AppRouter = () => {
         </Route>
 
         {/* Check-in Routes */}
-        <Route 
-          path="/checkin" 
+        <Route
+          path="/checkin"
           element={
             <RoleRoute roles={['staff', 'admin']}>
               <AppLayout />
@@ -204,8 +205,8 @@ const AppRouter = () => {
         </Route>
 
         {/* Checkout Routes */}
-        <Route 
-          path="/checkout" 
+        <Route
+          path="/checkout"
           element={
             <ProtectedRoute>
               <AppLayout />
