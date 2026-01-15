@@ -6,7 +6,7 @@ const { generateTokenPair, verifyRefreshToken } = require('../../services/auth.s
 const { verifyMFAToken, verifyBackupCode, removeBackupCode } = require('../../services/mfa.service');
 const { getClientIp, getUserAgent } = require('../../utils/helpers');
 const { isValidMFACode } = require('../../utils/validators');
-const { HTTP_STATUS, SUCCESS_MESSAGES, ERROR_MESSAGES, ACTIVITY_TYPES } = require('../../utils/constants');
+const { HTTP_STATUS, SUCCESS_MESSAGES, ERROR_MESSAGES, ACTIVITY_TYPES, ROLES } = require('../../utils/constants');
 const { AppError } = require('../../middleware/errorHandler.middleware');
 const config = require('../../config/env');
 
@@ -143,6 +143,35 @@ const login = async (req, res, next) => {
         });
         throw new AppError(ERROR_MESSAGES.MFA_INVALID, HTTP_STATUS.UNAUTHORIZED);
       }
+    }
+
+    // Check if 2FA is enabled or mandatory for specific roles
+    // Now mandatory for all roles: USER, ORGANIZER, STAFF
+    const is2FAMandatory = [ROLES.USER, ROLES.ORGANIZER, ROLES.STAFF].includes(user.role);
+    
+    if (user.twoFactorEnabled || is2FAMandatory) {
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      user.twoFactorOTP = otp;
+      user.twoFactorOTPExpires = otpExpires;
+      await user.save({ validateBeforeSave: false });
+
+      // Send OTP email
+      try {
+        const { send2FAOTPEmail } = require('../../services/email.service');
+        await send2FAOTPEmail(user.email, user.firstName, otp);
+      } catch (error) {
+        // Log but don't fail, user can resend
+      }
+
+      return res.status(HTTP_STATUS.OK).json({
+        success: true,
+        twoFactorRequired: true,
+        email: user.email,
+        message: 'A verification code has been sent to your email.'
+      });
     }
 
     // Reset login attempts
@@ -299,10 +328,91 @@ const logout = async (req, res, next) => {
   }
 };
 
+/**
+ * Verify 2FA login OTP
+ */
+const verify2FALogin = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const ipAddress = getClientIp(req);
+    const userAgent = getUserAgent(req);
+
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+twoFactorOTP +twoFactorOTPExpires');
+
+    if (!user) {
+      throw new AppError(ERROR_MESSAGES.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    if (!user.twoFactorOTP || user.twoFactorOTP !== otp || user.twoFactorOTPExpires < new Date()) {
+      await ActivityLog.create({
+        userId: user._id,
+        activityType: ACTIVITY_TYPES.LOGIN_FAILED,
+        description: '2FA login failed: Invalid or expired OTP',
+        ipAddress,
+        userAgent,
+        severity: 'high'
+      });
+      throw new AppError('Invalid or expired verification code', HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    // Clear OTP
+    user.twoFactorOTP = undefined;
+    user.twoFactorOTPExpires = undefined;
+    user.lastLogin = new Date();
+    user.lastLoginIp = ipAddress;
+    await user.save({ validateBeforeSave: false });
+
+    // Generate tokens
+    const tokens = generateTokenPair({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role
+    });
+
+    // Create session
+    await Session.create({
+      userId: user._id,
+      sessionToken: tokens.sessionToken,
+      refreshToken: tokens.refreshToken,
+      ipAddress,
+      userAgent,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    });
+
+    // Log activity
+    await ActivityLog.create({
+      userId: user._id,
+      activityType: ACTIVITY_TYPES.LOGIN,
+      description: 'User logged in via 2FA',
+      ipAddress,
+      userAgent
+    });
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: SUCCESS_MESSAGES.LOGIN_SUCCESS,
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          mfaEnabled: user.mfaEnabled
+        },
+        ...tokens
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   login,
   refreshToken,
-  logout
+  logout,
+  verify2FALogin
 };
 
 

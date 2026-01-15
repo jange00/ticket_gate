@@ -52,6 +52,18 @@ const userSchema = new mongoose.Schema({
     select: false, // Encrypted backup codes
     default: []
   },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  twoFactorOTP: {
+    type: String,
+    select: false
+  },
+  twoFactorOTPExpires: {
+    type: Date,
+    select: false
+  },
   isEmailVerified: {
     type: Boolean,
     default: false

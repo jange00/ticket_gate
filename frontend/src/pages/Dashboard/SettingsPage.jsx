@@ -66,6 +66,18 @@ const SettingsPage = () => {
     },
   });
 
+  const toggle2FAMutation = useMutation({
+    mutationFn: authService.toggle2FA,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['profile']);
+      setIsSubmitting(false);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update 2FA settings');
+      setIsSubmitting(false);
+    },
+  });
+
   const handleProfileSubmit = async (values, { setSubmitting }) => {
     setIsSubmitting(true);
     setSubmitting(true);
@@ -408,7 +420,46 @@ const SettingsPage = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Two-Factor Authentication */}
+              {/* Email 2FA */}
+              <Card className="p-5 border-2 border-gray-100 hover:border-orange-200 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-blue-50 rounded-lg">
+                        <FiMail className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <h3 className="font-semibold text-gray-900">Email 2FA</h3>
+                      {user.twoFactorEnabled && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          <FiCheckCircle className="w-3 h-3" />
+                          Enabled
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 ml-11">
+                      Receive a verification code via email when you log in
+                    </p>
+                  </div>
+                  <Button 
+                    variant={user.twoFactorEnabled ? 'outline' : 'primary'} 
+                    className="whitespace-nowrap"
+                    onClick={() => {
+                        setIsSubmitting(true);
+                        toggle2FAMutation.mutate({ enabled: !user.twoFactorEnabled });
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <Loading size="sm" />
+                        Processing...
+                      </div>
+                    ) : user.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'}
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Two-Factor Authentication (TOTP) */}
               <Card className="p-5 border-2 border-gray-100 hover:border-orange-200 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex-1">
@@ -416,7 +467,7 @@ const SettingsPage = () => {
                       <div className="p-2 bg-orange-50 rounded-lg">
                         <FiShield className="w-5 h-5 text-orange-600" />
                       </div>
-                      <h3 className="font-semibold text-gray-900">Two-Factor Authentication</h3>
+                      <h3 className="font-semibold text-gray-900">Authenticator App (TOTP)</h3>
                       {user.mfaEnabled && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                           <FiCheckCircle className="w-3 h-3" />
@@ -427,7 +478,7 @@ const SettingsPage = () => {
                     <p className="text-sm text-gray-600 ml-11">
                       {user.mfaEnabled
                         ? 'An extra layer of security is currently protecting your account'
-                        : 'Add an extra layer of security to protect your account from unauthorized access'}
+                        : 'Use an authenticator app to generate verification codes'}
                     </p>
                   </div>
                   <Link to="/mfa-setup">

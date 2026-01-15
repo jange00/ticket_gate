@@ -15,25 +15,35 @@ const createRateLimiter = (windowMs, maxRequests, message) => {
     max: maxRequests,
     message: {
       success: false,
-      error: message || 'Too many requests, please try again later'
+      message: message || 'Too many requests, please try again later'
     },
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {
+      const email = req.body?.email?.toLowerCase();
       logger.warn('Rate limit exceeded', {
         ip: req.ip,
+        email,
         url: req.originalUrl,
         method: req.method
       });
       res.status(429).json({
         success: false,
-        error: message || 'Too many requests, please try again later',
+        message: message || 'Too many requests, please try again later',
         retryAfter: Math.ceil(windowMs / 1000)
       });
     },
     // Custom key generator
     keyGenerator: (req) => {
-      // Use user ID if authenticated, otherwise use IP
+      // Use email if provided in body (for login/auth isolation), otherwise user ID or IP
+      const email = req.body?.email?.toLowerCase()?.trim();
+      
+      // If we have an email, use it as the unique key for this bucket
+      if (email) {
+        return `rate_limit_email_${email}`;
+      }
+      
+      // Fallback to user ID or IP
       return req.user?.userId || req.ip || 'unknown';
     }
   });
@@ -49,11 +59,11 @@ const apiLimiter = createRateLimiter(
 );
 
 /**
- * Login rate limiter (10 per 15 minutes per IP)
+ * Login rate limiter (5 per 3 minutes per account)
  */
 const loginLimiter = createRateLimiter(
-  15 * 60 * 1000, // 15 minutes
-  10, // 10 requests per 15 minutes
+  3 * 60 * 1000, // 3 minutes
+  5, // 5 requests per 3 minutes
   'Too many login attempts, please try again later'
 );
 
@@ -61,8 +71,8 @@ const loginLimiter = createRateLimiter(
  * Authentication rate limiter (stricter) - for other auth endpoints
  */
 const authLimiter = createRateLimiter(
-  15 * 60 * 1000, // 15 minutes
-  config.RATE_LIMIT_AUTH_MAX,
+  3 * 60 * 1000, // 3 minutes
+  config.RATE_LIMIT_AUTH_MAX || 5,
   'Too many authentication attempts, please try again later'
 );
 

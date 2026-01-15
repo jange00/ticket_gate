@@ -196,9 +196,16 @@ export const AuthProvider = ({ children }) => {
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: async (data) => {
-      // Check if MFA is required
+      // Check if MFA (TOTP) is required
       if (data.mfaRequired) {
         return { mfaRequired: true, message: data.message };
+      }
+
+      // Check if 2FA (Email OTP) is required
+      if (data.twoFactorRequired) {
+        // We handle the redirect in the component or here
+        // For now, return the status so the login form can navigate
+        return { twoFactorRequired: true, email: data.email, message: data.message };
       }
       
       setIsAuthenticated(true);
@@ -292,6 +299,29 @@ export const AuthProvider = ({ children }) => {
     },
   });
 
+  // 2FA Verification mutation
+  const verify2FALoginMutation = useMutation({
+    mutationFn: authService.verify2FALogin,
+    onSuccess: async (data) => {
+      setIsAuthenticated(true);
+      if (data?.data?.user) {
+        const loginUser = data.data.user;
+        setTempUser(loginUser);
+        queryClient.setQueryData(['profile'], { 
+          success: true,
+          data: loginUser
+        });
+        if (loginUser.role) {
+          setTimeout(() => {
+            redirectByRole(loginUser.role);
+          }, 100);
+        }
+      }
+      await queryClient.invalidateQueries(['profile']);
+      return data;
+    }
+  });
+
   // Note: Redirect after login is now handled in loginMutation.onSuccess
 
   // Logout mutation
@@ -340,6 +370,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     isLoading,
     login: loginMutation.mutateAsync,
+    verify2FALogin: verify2FALoginMutation.mutateAsync,
     logout: async () => {
       await logoutMutation.mutateAsync();
     },
@@ -347,6 +378,7 @@ export const AuthProvider = ({ children }) => {
     updateProfile: updateProfileMutation.mutateAsync,
     changePassword: changePasswordMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
+    isVerifying2FA: verify2FALoginMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
     isRegistering: registerMutation.isPending,
     hasRole,

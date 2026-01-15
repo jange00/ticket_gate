@@ -73,9 +73,44 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * Toggle 2FA
+ */
+const toggle2FA = async (req, res, next) => {
+  try {
+    const { enabled } = req.body;
+    const user = await User.findById(req.user.userId);
+
+    if (!user) {
+      throw new AppError(ERROR_MESSAGES.NOT_FOUND, HTTP_STATUS.NOT_FOUND);
+    }
+
+    user.twoFactorEnabled = enabled;
+    await user.save();
+
+    // Log activity
+    await ActivityLog.create({
+      userId: user._id,
+      activityType: ACTIVITY_TYPES.PROFILE_UPDATED,
+      description: `2FA ${enabled ? 'enabled' : 'disabled'}`,
+      ipAddress: getClientIp(req),
+      userAgent: getUserAgent(req)
+    });
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: `2FA ${enabled ? 'enabled' : 'disabled'} successfully`,
+      data: { twoFactorEnabled: user.twoFactorEnabled }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProfile,
-  updateProfile
+  updateProfile,
+  toggle2FA
 };
 
 

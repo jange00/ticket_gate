@@ -60,7 +60,8 @@ const register = async (req, res, next) => {
       passwordExpiresAt: calculatePasswordExpiration(now),
       isEmailVerified: false,
       emailVerificationToken: otp,
-      emailVerificationExpires: otpExpires
+      emailVerificationExpires: otpExpires,
+      twoFactorEnabled: true // Enforced for all roles by default
     });
 
     // Save password to history (keep last 5 passwords)

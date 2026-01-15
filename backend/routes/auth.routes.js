@@ -43,6 +43,22 @@ router.post(
 );
 
 /**
+ * @route   POST /api/auth/verify-2fa-login
+ * @desc    Verify 2FA login OTP
+ * @access  Public
+ */
+router.post(
+  '/verify-2fa-login',
+  loginLimiter,
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('otp').isLength({ min: 6, max: 6 }).isNumeric()
+  ],
+  validate,
+  authController.verify2FALogin
+);
+
+/**
  * @route   POST /api/auth/refresh
  * @desc    Refresh access token
  * @access  Public
@@ -178,6 +194,13 @@ router.post(
   validate,
   authController.disableMFA
 );
+
+/**
+ * @route   POST /api/auth/mfa/toggle
+ * @desc    Toggle Email 2FA
+ * @access  Private
+ */
+router.post('/mfa/toggle', authenticate, authController.toggle2FA);
 
 /**
  * @route   POST /api/auth/verify-email

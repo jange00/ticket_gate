@@ -28,6 +28,8 @@ export const authApi = {
   disableMFA: (data) => client.post('/auth/mfa/disable', data),
   
   resendOTP: (data) => client.post('/auth/resend-otp', data),
+  verify2FALogin: (data) => client.post('/auth/verify-2fa-login', data),
+  toggle2FA: (data) => client.post('/auth/mfa/toggle', data),
 };
 
 

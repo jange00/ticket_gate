@@ -20,6 +20,7 @@ import ForgotPasswordPage from '../pages/Auth/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/Auth/ResetPasswordPage';
 import EmailVerificationPage from '../pages/Auth/EmailVerificationPage';
 import MFASetupPage from '../pages/Auth/MFASetupPage';
+import Verify2FALogin from '../pages/Auth/Verify2FALogin';
 
 // Dashboard pages
 import DashboardPage from '../pages/Dashboard/DashboardPage';
@@ -90,6 +91,7 @@ const AppRouter = () => {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="verify-email" element={<EmailVerificationPage />} />
+          <Route path="login/2fa" element={<Verify2FALogin />} />
           <Route 
             path="mfa-setup" 
             element={

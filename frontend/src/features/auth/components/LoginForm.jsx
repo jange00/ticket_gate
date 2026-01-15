@@ -110,6 +110,13 @@ const LoginForm = () => {
           
           if (data.mfaRequired) {
             setMfaRequired(true);
+          } else if (data.twoFactorRequired) {
+            navigate('/login/2fa', { 
+              state: { 
+                email: values.email,
+                from: from 
+              } 
+            });
           } else {
             // AuthContext will handle role-based redirect automatically
             // If no redirect happened, navigate to the original location or dashboard
@@ -141,8 +148,8 @@ const LoginForm = () => {
               if (import.meta.env.DEV) {
                 console.log('Account lockout detected (403 status), setting timer for:', values.email);
               }
-              // Set lockout for 15 minutes (900 seconds) - email-specific
-              const lockoutDuration = 15 * 60; // 15 minutes in seconds
+              // Set lockout for 3 minutes (180 seconds) - email-specific
+              const lockoutDuration = 3 * 60; // 3 minutes in seconds
               const lockoutEndTime = Date.now() + (lockoutDuration * 1000);
               const lockoutKey = `accountLockoutEndTime_${values.email.toLowerCase().trim()}`;
               localStorage.setItem(lockoutKey, lockoutEndTime.toString());

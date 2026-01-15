@@ -85,15 +85,23 @@ export const authService = {
           message: response.data.message || 'Multi-factor authentication required',
         };
       }
+
+      // Handle 2FA required response (Email OTP)
+      if (response.data.twoFactorRequired) {
+        return response.data;
+      }
       
       if (response.data.success) {
-        const { accessToken, refreshToken, sessionToken, user } = response.data.data;
-        
-        // Store tokens
-        authService.setTokens(accessToken, refreshToken, sessionToken);
-        
-        showSuccessToast('Login successful');
-        return response.data; // Return full response including user data
+        // Only destructure data if it exists
+        if (response.data.data) {
+          const { accessToken, refreshToken, sessionToken, user } = response.data.data;
+          
+          // Store tokens
+          authService.setTokens(accessToken, refreshToken, sessionToken);
+          
+          showSuccessToast('Login successful');
+          return response.data; // Return full response including user data
+        }
       }
       throw new Error(response.data.message || 'Login failed');
     } catch (error) {
@@ -239,6 +247,38 @@ export const authService = {
       const response = await authApi.resendOTP(data);
       if (response.data.success) {
         showSuccessToast(response.data.message || 'OTP resent successfully');
+      }
+      return response.data;
+    } catch (error) {
+      showErrorToast(error);
+      throw error;
+    }
+  },
+  
+  verify2FALogin: async (data) => {
+    try {
+      const response = await authApi.verify2FALogin(data);
+      if (response.data.success) {
+        const { accessToken, refreshToken, sessionToken, user } = response.data.data;
+        
+        // Store tokens
+        authService.setTokens(accessToken, refreshToken, sessionToken);
+        
+        showSuccessToast('Login successful');
+        return response.data;
+      }
+      throw new Error(response.data.message || 'Verification failed');
+    } catch (error) {
+      showErrorToast(error);
+      throw error;
+    }
+  },
+
+  toggle2FA: async (data) => {
+    try {
+      const response = await authApi.toggle2FA(data);
+      if (response.data.success) {
+        showSuccessToast(response.data.message);
       }
       return response.data;
     } catch (error) {

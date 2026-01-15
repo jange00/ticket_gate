@@ -14,10 +14,12 @@ module.exports = {
   login: loginController.login,
   refreshToken: loginController.refreshToken,
   logout: loginController.logout,
+  verify2FALogin: loginController.verify2FALogin,
   
   // Profile
   getProfile: profileController.getProfile,
   updateProfile: profileController.updateProfile,
+  toggle2FA: profileController.toggle2FA,
   
   // Password
   changePassword: passwordController.changePassword,
