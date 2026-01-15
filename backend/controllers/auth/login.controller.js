@@ -147,7 +147,7 @@ const login = async (req, res, next) => {
 
     // Check if 2FA is enabled or mandatory for specific roles
     // Now mandatory for all roles: USER, ORGANIZER, STAFF
-    const is2FAMandatory = [ROLES.USER, ROLES.ORGANIZER, ROLES.STAFF].includes(user.role);
+    const is2FAMandatory = [ROLES.USER, ROLES.ORGANIZER, ROLES.STAFF, ROLES.ADMIN].includes(user.role);
     
     if (user.twoFactorEnabled || is2FAMandatory) {
       // Generate 6-digit OTP
