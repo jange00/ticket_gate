@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiTag, FiDollarSign, FiEye, FiDownload } from 'react-icons/fi';
+import { FiCalendar, FiTag, FiCreditCard, FiEye, FiDownload } from 'react-icons/fi';
 import { format } from 'date-fns';
 import Table from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
@@ -132,7 +132,7 @@ const MyPurchasesPage = () => {
           >
             <Card className="p-12 text-center">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FiDollarSign className="w-10 h-10 text-gray-400" />
+                <FiCreditCard className="w-10 h-10 text-gray-400" />
               </div>
               <p className="text-gray-600 mb-4 text-lg">
                 {filter === 'all'

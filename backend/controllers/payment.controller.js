@@ -184,6 +184,11 @@ const generateTicketsForPurchase = async (purchaseId) => {
       await ticketType.save();
     }
 
+    // Update Event stats (tickets sold and revenue)
+    event.soldTickets += purchase.tickets.reduce((acc, curr) => acc + curr.quantity, 0);
+    event.totalRevenue += purchase.totalAmount;
+    await event.save();
+
     // Mark purchase as paid (even if it was a simulated failure)
     purchase.status = PURCHASE_STATUS.PAID;
     purchase.paymentDate = new Date();

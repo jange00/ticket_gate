@@ -8,7 +8,7 @@ import Loading from '../../components/ui/Loading';
 import Button from '../../components/ui/Button';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { motion } from 'framer-motion';
-import { FiCheckCircle, FiTag, FiHome, FiCalendar, FiMapPin, FiDollarSign } from 'react-icons/fi';
+import { FiCheckCircle, FiTag, FiHome, FiCalendar, FiMapPin, FiCreditCard } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const PurchaseSuccessPage = () => {
@@ -229,7 +229,7 @@ const PurchaseSuccessPage = () => {
             <div className="pb-6 border-b-2 border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
-                  <FiDollarSign className="w-5 h-5 text-white" />
+                  <FiCreditCard className="w-5 h-5 text-white" />
                 </div>
                 Purchase Details
               </h2>

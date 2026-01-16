@@ -3,10 +3,10 @@ import { adminApi } from '../../api/admin.api';
 import Card from '../../components/ui/Card';
 import Loading from '../../components/ui/Loading';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  UsersIcon, 
-  CalendarIcon, 
-  CurrencyDollarIcon,
+import {
+  UsersIcon,
+  CalendarIcon,
+  CreditCardIcon,
   TicketIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon
@@ -14,7 +14,7 @@ import {
 
 const AdminDashboardPage = () => {
   const { user } = useAuth();
-  
+
   // Fetch statistics
   const { data: statsData, isLoading, error } = useQuery({
     queryKey: ['admin-statistics'],
@@ -56,7 +56,7 @@ const AdminDashboardPage = () => {
     {
       title: 'Total Revenue',
       value: `NPR ${(stats.totalRevenue || 0).toLocaleString()}`,
-      icon: CurrencyDollarIcon,
+      icon: CreditCardIcon,
       color: 'bg-green-500',
     },
     {

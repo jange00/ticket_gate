@@ -11,14 +11,14 @@ import Input from '../../components/ui/Input';
 import { formatDateTime, formatCurrency } from '../../utils/formatters';
 import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiMapPin, FiDollarSign, FiPlus, FiMinus, FiArrowLeft, FiTag, FiShoppingCart, FiCheck } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiPlus, FiMinus, FiArrowLeft, FiTag, FiShoppingCart, FiCheck } from 'react-icons/fi';
 
 const EventDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [selectedTickets, setSelectedTickets] = useState({});
-  
+
   const { data: eventData, isLoading: eventLoading, error: eventError } = useQuery({
     queryKey: ['event', id],
     queryFn: async () => {
@@ -29,7 +29,7 @@ const EventDetailPage = () => {
     },
     enabled: !!id,
   });
-  
+
   const { data: ticketTypesData, isLoading: ticketTypesLoading, error: ticketTypesError } = useQuery({
     queryKey: ['ticketTypes', id],
     queryFn: async () => {
@@ -39,7 +39,7 @@ const EventDetailPage = () => {
     },
     enabled: !!id,
   });
-  
+
   // Extract event data - handle various response structures
   let event = null;
   if (eventData) {
@@ -47,17 +47,17 @@ const EventDetailPage = () => {
     console.log('EventDetailPage - Processing responseData:', responseData);
     console.log('EventDetailPage - responseData.data:', responseData?.data);
     console.log('EventDetailPage - responseData.data keys:', responseData?.data ? Object.keys(responseData.data) : 'N/A');
-    
+
     if (responseData) {
       // Helper function to check if an object is a valid event
       const isValidEvent = (obj) => {
-        return obj && 
-               typeof obj === 'object' && 
-               !Array.isArray(obj) && 
-               Object.keys(obj).length > 0 && 
-               (obj._id || obj.id || obj.title);
+        return obj &&
+          typeof obj === 'object' &&
+          !Array.isArray(obj) &&
+          Object.keys(obj).length > 0 &&
+          (obj._id || obj.id || obj.title);
       };
-      
+
       // Handle { success: true, data: { event: {...}, ticketTypes: [...] } }
       if (responseData.success && responseData.data) {
         console.log('EventDetailPage - Checking success.data structure:', {
@@ -66,7 +66,7 @@ const EventDetailPage = () => {
           eventIsValid: responseData.data.event ? isValidEvent(responseData.data.event) : false,
           dataIsValid: isValidEvent(responseData.data)
         });
-        
+
         if (responseData.data.event && isValidEvent(responseData.data.event)) {
           event = responseData.data.event;
           console.log('EventDetailPage - Extracted from success.data.event:', event);
@@ -95,7 +95,7 @@ const EventDetailPage = () => {
         console.log('EventDetailPage - Using responseData directly:', event);
       }
     }
-    
+
     // Final fallback - try all possible paths
     if (!event || (typeof event === 'object' && Object.keys(event).length === 0)) {
       console.warn('EventDetailPage - Event extraction failed, trying fallbacks');
@@ -104,7 +104,7 @@ const EventDetailPage = () => {
       const fallback3 = eventData?.data?.event;
       const fallback4 = eventData?.data;
       const fallback5 = eventData;
-      
+
       if (fallback1 && typeof fallback1 === 'object' && Object.keys(fallback1).length > 0 && (fallback1._id || fallback1.id || fallback1.title)) {
         event = fallback1;
       } else if (fallback2 && typeof fallback2 === 'object' && Object.keys(fallback2).length > 0 && (fallback2._id || fallback2.id || fallback2.title)) {
@@ -119,11 +119,11 @@ const EventDetailPage = () => {
       console.log('EventDetailPage - Fallback result:', event);
     }
   }
-  
+
   // Extract ticket types - handle various response structures
   // Also check if ticket types are included in the event response
   let ticketTypes = [];
-  
+
   // First, try to get ticket types from the event response
   if (eventData) {
     const responseData = eventData.data;
@@ -132,7 +132,7 @@ const EventDetailPage = () => {
       console.log('EventDetailPage - Extracted ticketTypes from event response:', ticketTypes);
     }
   }
-  
+
   // If not found in event response, use the separate ticket types API
   if (ticketTypes.length === 0 && ticketTypesData) {
     const responseData = ticketTypesData.data;
@@ -158,7 +158,7 @@ const EventDetailPage = () => {
     }
     console.log('EventDetailPage - Extracted ticketTypes from ticketTypesData:', ticketTypes);
   }
-  
+
   // Ensure ticketTypes is always an array
   if (!Array.isArray(ticketTypes)) {
     ticketTypes = [];
@@ -176,7 +176,7 @@ const EventDetailPage = () => {
     setSelectedTickets(prev => {
       const current = prev[ticketTypeId] || 0;
       const newQuantity = Math.max(0, current + change);
-      
+
       const ticketType = ticketTypes.find(tt => tt._id === ticketTypeId);
       if (ticketType) {
         const maxQuantity = Math.min(
@@ -184,7 +184,7 @@ const EventDetailPage = () => {
           ticketType.maxPerPurchase || 10
         );
         const finalQuantity = Math.min(newQuantity, maxQuantity);
-        
+
         if (finalQuantity === 0) {
           const { [ticketTypeId]: removed, ...rest } = prev;
           return rest;
@@ -204,7 +204,7 @@ const EventDetailPage = () => {
         ticketType.maxPerPurchase || 10
       );
       const finalQuantity = Math.max(0, Math.min(numValue, maxQuantity));
-      
+
       if (finalQuantity === 0) {
         setSelectedTickets(prev => {
           const { [ticketTypeId]: removed, ...rest } = prev;
@@ -215,13 +215,13 @@ const EventDetailPage = () => {
       }
     }
   };
-  
+
   const handleCheckout = () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/events/${id}` } });
       return;
     }
-    
+
     const tickets = Object.entries(selectedTickets)
       .filter(([_, quantity]) => quantity > 0)
       .map(([ticketTypeId, quantity]) => {
@@ -232,21 +232,21 @@ const EventDetailPage = () => {
           price: ticketType?.price || 0,
         };
       });
-    
+
     if (tickets.length === 0) return;
-    
+
     navigate('/checkout', { state: { eventId: id, tickets } });
   };
-  
+
   const totalPrice = Object.entries(selectedTickets).reduce((sum, [ticketTypeId, quantity]) => {
     const ticketType = ticketTypes.find(tt => tt._id === ticketTypeId);
     return sum + (ticketType?.price || 0) * quantity;
   }, 0);
-  
+
   if (eventLoading || ticketTypesLoading) {
     return <Loading fullScreen />;
   }
-  
+
   // Handle errors
   if (eventError) {
     return (
@@ -261,12 +261,12 @@ const EventDetailPage = () => {
       </div>
     );
   }
-  
+
   // Validate event has required fields
   if (!event || (typeof event === 'object' && Object.keys(event).length === 0) || (!event._id && !event.id && !event.title)) {
     const responseData = eventData?.data;
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="p-12 text-center">
           <p className="text-gray-600 mb-2">Event not found or data is incomplete</p>
           {import.meta.env.DEV && (
@@ -342,9 +342,9 @@ const EventDetailPage = () => {
                         </Badge>
                       )}
                       <Badge variant={event.status === 'published' ? 'success' : 'default'} className="bg-white/90 backdrop-blur-sm shadow-lg">
-                {event.status}
-              </Badge>
-            </div>
+                        {event.status}
+                      </Badge>
+                    </div>
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-2xl mb-2">
                       {event.title}
                     </h1>
@@ -375,7 +375,7 @@ const EventDetailPage = () => {
                         {event.status}
                       </Badge>
                     </div>
-              </div>
+                  </div>
                 )}
 
                 <div className="prose prose-lg max-w-none mb-8">
@@ -421,12 +421,12 @@ const EventDetailPage = () => {
                         </p>
                       </div>
                     </motion.div>
-              )}
-            </div>
-          </Card>
+                  )}
+                </div>
+              </Card>
             </motion.div>
-        </div>
-        
+          </div>
+
           {/* Ticket Selection Sidebar */}
           <div className="lg:col-span-1">
             <motion.div
@@ -450,7 +450,7 @@ const EventDetailPage = () => {
 
                 {/* Content Section */}
                 <div className="p-6 md:p-8">
-            {ticketTypes.length === 0 ? (
+                  {ticketTypes.length === 0 ? (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -464,7 +464,7 @@ const EventDetailPage = () => {
                     </motion.div>
                   ) : (
                     <>
-              <div className="space-y-4 mb-6">
+                      <div className="space-y-4 mb-6">
                         {ticketTypes.map((ticketType, index) => {
                           const quantity = selectedTickets[ticketType._id] || 0;
                           const available = ticketType.quantityAvailable || ticketType.quantity || 0;
@@ -478,11 +478,10 @@ const EventDetailPage = () => {
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.5 + index * 0.1 }}
                               whileHover={{ scale: 1.02, y: -2 }}
-                              className={`relative rounded-2xl p-5 transition-all duration-300 ${
-                                isSelected
+                              className={`relative rounded-2xl p-5 transition-all duration-300 ${isSelected
                                   ? 'bg-gradient-to-br from-orange-50 to-orange-100/50 border-2 border-orange-400 shadow-lg'
                                   : 'bg-white border-2 border-gray-200 hover:border-orange-300 hover:shadow-md'
-                              }`}
+                                }`}
                             >
                               {/* Selected Indicator */}
                               {isSelected && (
@@ -497,24 +496,23 @@ const EventDetailPage = () => {
 
                               {/* Ticket Icon */}
                               <div className="flex items-start gap-4 mb-4">
-                                <div className={`p-3 rounded-xl ${
-                                  isSelected 
-                                    ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg' 
+                                <div className={`p-3 rounded-xl ${isSelected
+                                    ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg'
                                     : 'bg-gradient-to-br from-gray-100 to-gray-200'
-                                }`}>
+                                  }`}>
                                   <FiTag className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-gray-600'}`} />
                                 </div>
-                                
+
                                 <div className="flex-1">
                                   <div className="flex items-start justify-between mb-2">
                                     <div className="flex-1">
                                       <h3 className="font-bold text-gray-900 text-lg mb-1">{ticketType.name}</h3>
-                        {ticketType.description && (
+                                      {ticketType.description && (
                                         <p className="text-sm text-gray-600 leading-relaxed">{ticketType.description}</p>
-                        )}
-                      </div>
+                                      )}
+                                    </div>
                                   </div>
-                                  
+
                                   {/* Price and Availability */}
                                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
                                     <div>
@@ -531,20 +529,20 @@ const EventDetailPage = () => {
                                     </div>
                                   </div>
                                 </div>
-                    </div>
+                              </div>
 
                               {/* Quantity Controls */}
                               <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-200">
                                 <span className="text-sm font-semibold text-gray-700">Quantity</span>
                                 <div className="flex items-center gap-2">
-                        <button
+                                  <button
                                     type="button"
                                     onClick={() => updateTicketQuantity(ticketType._id, -1)}
                                     disabled={quantity === 0}
                                     className="p-2.5 rounded-xl border-2 border-gray-300 hover:border-orange-500 hover:bg-orange-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 disabled:hover:border-gray-300 disabled:hover:bg-transparent active:scale-95"
                                   >
                                     <FiMinus className="w-4 h-4 text-gray-700" />
-                        </button>
+                                  </button>
                                   <Input
                                     type="number"
                                     min="0"
@@ -553,14 +551,14 @@ const EventDetailPage = () => {
                                     onChange={(e) => handleQuantityChange(ticketType._id, e.target.value)}
                                     className="w-16 text-center font-bold text-lg border-2 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl"
                                   />
-                        <button
+                                  <button
                                     type="button"
                                     onClick={() => updateTicketQuantity(ticketType._id, 1)}
                                     disabled={quantity >= Math.min(available, maxPerPurchase)}
                                     className="p-2.5 rounded-xl border-2 border-gray-300 hover:border-orange-500 hover:bg-orange-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 disabled:hover:border-gray-300 disabled:hover:bg-transparent active:scale-95"
                                   >
                                     <FiPlus className="w-4 h-4 text-gray-700" />
-                        </button>
+                                  </button>
                                 </div>
                               </div>
 
@@ -595,40 +593,40 @@ const EventDetailPage = () => {
                             <div className="flex items-center gap-2">
                               <FiShoppingCart className="w-5 h-5 text-orange-600" />
                               <span className="font-bold text-gray-900 text-lg">Order Summary</span>
-                    </div>
-                  </div>
-                          
+                            </div>
+                          </div>
+
                           <div className="space-y-2 mb-4">
                             <div className="flex items-center justify-between text-sm text-gray-600">
                               <span>{totalTicketsSelected} {totalTicketsSelected === 1 ? 'ticket' : 'tickets'}</span>
                               <span className="font-medium">{formatCurrency(totalPrice)}</span>
-                </div>
-              </div>
-                          
+                            </div>
+                          </div>
+
                           <div className="flex items-center justify-between pt-4 border-t-2 border-orange-200">
                             <span className="font-bold text-gray-900 text-xl">Total</span>
                             <span className="font-bold text-3xl bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">
                               {formatCurrency(totalPrice)}
                             </span>
                           </div>
-            
-            <Button
+
+                          <Button
                             variant="primary"
                             className="w-full py-4 text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 transform hover:scale-[1.02] active:scale-[0.98]"
-              onClick={handleCheckout}
+                            onClick={handleCheckout}
                             disabled={totalTicketsSelected === 0}
-            >
+                          >
                             <span className="flex items-center justify-center gap-2">
                               <FiShoppingCart className="w-5 h-5" />
                               Proceed to Checkout
                             </span>
-            </Button>
+                          </Button>
                         </motion.div>
                       )}
                     </>
                   )}
                 </div>
-          </Card>
+              </Card>
             </motion.div>
           </div>
         </div>

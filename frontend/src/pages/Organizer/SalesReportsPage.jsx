@@ -6,7 +6,7 @@ import Loading from '../../components/ui/Loading';
 import Button from '../../components/ui/Button';
 import { formatCurrency } from '../../utils/formatters';
 import { motion } from 'framer-motion';
-import { FiDownload, FiTrendingUp, FiDollarSign, FiTag, FiCalendar } from 'react-icons/fi';
+import { FiDownload, FiTrendingUp, FiCreditCard, FiTag, FiCalendar } from 'react-icons/fi';
 import RevenueChart from '../../components/charts/RevenueChart';
 import Table from '../../components/ui/Table';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
@@ -24,12 +24,15 @@ const SalesReportsPage = () => {
 
   const stats = statsData?.data?.data || statsData?.data || {};
 
-  // Prepare revenue data for chart
+  // Prepare revenue data for chart using real data
   const revenueData = Array.from({ length: 6 }, (_, i) => {
     const date = subMonths(new Date(), 5 - i);
+    const monthKey = format(date, 'yyyy-MM');
+    const monthData = stats.revenueByMonth?.find(m => m.month === monthKey);
+
     return {
       name: format(date, 'MMM'),
-      revenue: Math.floor(Math.random() * 50000) + 10000, // Mock - replace with real data
+      revenue: monthData?.revenue || 0,
     };
   });
 
@@ -46,7 +49,7 @@ const SalesReportsPage = () => {
     {
       label: 'Total Revenue',
       value: formatCurrency(stats.totalRevenue || 0),
-      icon: FiDollarSign,
+      icon: FiCreditCard,
       color: 'from-green-500 to-green-600',
       change: '+12%',
     },
@@ -161,18 +164,29 @@ const SalesReportsPage = () => {
                 <Table.HeaderCell>Status</Table.HeaderCell>
               </Table.Header>
               <Table.Body>
-                {/* Mock data - replace with real data */}
-                <Table.Row>
-                  <Table.Cell>
-                    <p className="font-semibold text-gray-900">Music Festival 2024</p>
-                  </Table.Cell>
-                  <Table.Cell>Jan 15, 2024</Table.Cell>
-                  <Table.Cell>300</Table.Cell>
-                  <Table.Cell className="font-semibold">{formatCurrency(15000)}</Table.Cell>
-                  <Table.Cell>
-                    <Badge variant="success">Published</Badge>
-                  </Table.Cell>
-                </Table.Row>
+                {stats.topEvents && stats.topEvents.length > 0 ? (
+                  stats.topEvents.map((event) => (
+                    <Table.Row key={event._id}>
+                      <Table.Cell>
+                        <p className="font-semibold text-gray-900">{event.title}</p>
+                      </Table.Cell>
+                      <Table.Cell>{new Date(event.date).toLocaleDateString()}</Table.Cell>
+                      <Table.Cell>{event.ticketsSold}</Table.Cell>
+                      <Table.Cell className="font-semibold">{formatCurrency(event.revenue)}</Table.Cell>
+                      <Table.Cell>
+                        <Badge variant={event.status === 'published' ? 'success' : 'warning'}>
+                          {event.status}
+                        </Badge>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))
+                ) : (
+                  <Table.Row>
+                    <Table.Cell colSpan={5} className="text-center py-8 text-gray-500">
+                      No data available for top events.
+                    </Table.Cell>
+                  </Table.Row>
+                )}
               </Table.Body>
             </Table>
           </Card>

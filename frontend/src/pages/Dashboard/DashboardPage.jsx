@@ -9,7 +9,7 @@ import Button from '../../components/ui/Button';
 import Loading from '../../components/ui/Loading';
 import Badge from '../../components/ui/Badge';
 import { motion } from 'framer-motion';
-import { FiTag, FiCalendar, FiDollarSign, FiClock } from 'react-icons/fi';
+import { FiTag, FiCalendar, FiCreditCard, FiClock } from 'react-icons/fi';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { format, isAfter } from 'date-fns';
 
@@ -134,7 +134,7 @@ const DashboardPage = () => {
     {
       label: 'Total Spent',
       value: formatCurrency(totalSpent),
-      icon: FiDollarSign,
+      icon: FiCreditCard,
       color: 'bg-green-500',
     },
   ];
@@ -240,7 +240,7 @@ const DashboardPage = () => {
                           {purchase.tickets?.length || 0} tickets
                         </span>
                         <span className="flex items-center gap-1">
-                          <FiDollarSign className="w-4 h-4" />
+                          <FiCreditCard className="w-4 h-4" />
                           {formatCurrency(purchase.totalAmount || 0)}
                         </span>
                         <span className="flex items-center gap-1">

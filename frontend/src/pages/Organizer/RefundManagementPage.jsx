@@ -10,7 +10,7 @@ import Modal from '../../components/ui/Modal';
 import Table from '../../components/ui/Table';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { motion } from 'framer-motion';
-import { FiDollarSign, FiCheckCircle, FiXCircle, FiClock } from 'react-icons/fi';
+import { FiCreditCard, FiCheckCircle, FiXCircle, FiClock } from 'react-icons/fi';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -42,19 +42,19 @@ const RefundManagementPage = () => {
       }
     }
   }
-  
+
   // Ensure events is always an array
   if (!Array.isArray(events)) {
     events = [];
   }
-  
+
   const eventIds = events.map(e => e._id || e.id);
 
   // Get refunds for organizer's events
   const { data, isLoading, error } = useQuery({
     queryKey: ['organizerRefunds', filter],
-    queryFn: () => refundsApi.getMyRefunds({ 
-      status: filter !== 'all' ? filter : undefined 
+    queryFn: () => refundsApi.getMyRefunds({
+      status: filter !== 'all' ? filter : undefined
     }),
   });
 
@@ -96,11 +96,11 @@ const RefundManagementPage = () => {
 
   // Filter refunds to only show those for organizer's events
   // If events haven't loaded yet or eventIds is empty, show all refunds (they'll be filtered once events load)
-  let refunds = eventIds.length > 0 
+  let refunds = eventIds.length > 0
     ? allRefunds.filter(refund => {
-        const eventId = refund.event?._id || refund.purchase?.event?._id || refund.eventId;
-        return eventId && eventIds.includes(eventId);
-      })
+      const eventId = refund.event?._id || refund.purchase?.event?._id || refund.eventId;
+      return eventId && eventIds.includes(eventId);
+    })
     : [];
 
   // Filter by selected event
@@ -194,7 +194,7 @@ const RefundManagementPage = () => {
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <FiDollarSign className="w-6 h-6 text-blue-600" />
+                <FiCreditCard className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </Card>
@@ -216,7 +216,7 @@ const RefundManagementPage = () => {
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalAmount)}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <FiDollarSign className="w-6 h-6 text-green-600" />
+                <FiCreditCard className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </Card>
@@ -227,7 +227,7 @@ const RefundManagementPage = () => {
                 <p className="text-2xl font-bold text-orange-600">{formatCurrency(stats.pendingAmount)}</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <FiDollarSign className="w-6 h-6 text-orange-600" />
+                <FiCreditCard className="w-6 h-6 text-orange-600" />
               </div>
             </div>
           </Card>
@@ -282,7 +282,7 @@ const RefundManagementPage = () => {
           >
             <Card className="p-12 text-center">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FiDollarSign className="w-10 h-10 text-gray-400" />
+                <FiCreditCard className="w-10 h-10 text-gray-400" />
               </div>
               <p className="text-gray-600 mb-4 text-lg">No refund requests found</p>
             </Card>
@@ -334,12 +334,12 @@ const RefundManagementPage = () => {
                       </p>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge 
+                      <Badge
                         variant={
                           refund.status === 'approved' ? 'success' :
-                          refund.status === 'rejected' ? 'danger' :
-                          refund.status === 'processed' ? 'default' :
-                          'warning'
+                            refund.status === 'rejected' ? 'danger' :
+                              refund.status === 'processed' ? 'default' :
+                                'warning'
                         }
                       >
                         {refund.status}
@@ -399,11 +399,11 @@ const RefundManagementPage = () => {
           >
             <div className="space-y-4">
               <p className="text-gray-600">
-                {actionType === 'approve' 
+                {actionType === 'approve'
                   ? 'Are you sure you want to approve this refund request? The refund will be processed.'
                   : 'Are you sure you want to reject this refund request? Please provide a reason.'}
               </p>
-              
+
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase">Event</p>

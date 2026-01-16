@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Table from '../../components/ui/Table';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { motion } from 'framer-motion';
-import { FiDollarSign, FiTrendingUp, FiTrendingDown, FiSearch, FiDownload } from 'react-icons/fi';
+import { FiCreditCard, FiTrendingUp, FiTrendingDown, FiSearch, FiDownload } from 'react-icons/fi';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -20,7 +20,7 @@ const PaymentMonitoringPage = () => {
   const { data: purchasesData, isLoading, error } = useQuery({
     queryKey: ['adminPurchases', filter, searchQuery, dateRange],
     queryFn: async () => {
-      const response = await adminApi.getPurchases({ 
+      const response = await adminApi.getPurchases({
         status: filter !== 'all' ? filter : undefined,
         search: searchQuery || undefined,
         dateRange: dateRange !== 'all' ? dateRange : undefined
@@ -83,7 +83,7 @@ const PaymentMonitoringPage = () => {
   const totalRevenue = purchases
     .filter(p => p.status === 'paid' || p.status === 'PAID')
     .reduce((sum, p) => sum + (p.totalAmount || p.amount || 0), 0);
-  
+
   const totalTransactions = purchases.length;
   const successfulTransactions = purchases.filter(p => p.status === 'paid' || p.status === 'PAID').length;
   const failedTransactions = purchases.filter(p => p.status === 'failed' || p.status === 'FAILED').length;
@@ -92,7 +92,7 @@ const PaymentMonitoringPage = () => {
     {
       label: 'Total Revenue',
       value: formatCurrency(totalRevenue),
-      icon: FiDollarSign,
+      icon: FiCreditCard,
       color: 'bg-green-500',
     },
     {
@@ -209,27 +209,27 @@ const PaymentMonitoringPage = () => {
       {filteredPurchases.length === 0 ? (
         <Card className="p-12 text-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FiDollarSign className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+            <FiCreditCard className="w-10 h-10 text-gray-400 dark:text-gray-500" />
           </div>
           <p className="text-gray-600 dark:text-gray-400 mb-4 text-lg">No payments found</p>
         </Card>
       ) : (
         <Card className="overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <Table>
-              <Table.Header>
-                <Table.HeaderCell>Transaction ID</Table.HeaderCell>
-                <Table.HeaderCell>Event</Table.HeaderCell>
-                <Table.HeaderCell>Customer</Table.HeaderCell>
-                <Table.HeaderCell>Amount</Table.HeaderCell>
-                <Table.HeaderCell>Status</Table.HeaderCell>
-                <Table.HeaderCell>Date</Table.HeaderCell>
-                <Table.HeaderCell>Payment Method</Table.HeaderCell>
-              </Table.Header>
-              <Table.Body>
-                {filteredPurchases.map((purchase) => {
-                  const purchaseId = purchase._id || purchase.id;
-                  const transactionId = purchase.transactionId || purchaseId;
-                  return (
+          <Table>
+            <Table.Header>
+              <Table.HeaderCell>Transaction ID</Table.HeaderCell>
+              <Table.HeaderCell>Event</Table.HeaderCell>
+              <Table.HeaderCell>Customer</Table.HeaderCell>
+              <Table.HeaderCell>Amount</Table.HeaderCell>
+              <Table.HeaderCell>Status</Table.HeaderCell>
+              <Table.HeaderCell>Date</Table.HeaderCell>
+              <Table.HeaderCell>Payment Method</Table.HeaderCell>
+            </Table.Header>
+            <Table.Body>
+              {filteredPurchases.map((purchase) => {
+                const purchaseId = purchase._id || purchase.id;
+                const transactionId = purchase.transactionId || purchaseId;
+                return (
                   <Table.Row key={purchaseId}>
                     <Table.Cell>
                       <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
@@ -257,12 +257,12 @@ const PaymentMonitoringPage = () => {
                       </span>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge 
+                      <Badge
                         variant={
                           purchase.status === 'paid' ? 'success' :
-                          purchase.status === 'pending' ? 'warning' :
-                          purchase.status === 'failed' ? 'danger' :
-                          purchase.status === 'refunded' ? 'default' : 'default'
+                            purchase.status === 'pending' ? 'warning' :
+                              purchase.status === 'failed' ? 'danger' :
+                                purchase.status === 'refunded' ? 'default' : 'default'
                         }
                       >
                         {purchase.status}
@@ -279,12 +279,12 @@ const PaymentMonitoringPage = () => {
                       </span>
                     </Table.Cell>
                   </Table.Row>
-                  );
-                })}
-              </Table.Body>
-            </Table>
-          </Card>
-        )}
+                );
+              })}
+            </Table.Body>
+          </Table>
+        </Card>
+      )}
     </div>
   );
 };

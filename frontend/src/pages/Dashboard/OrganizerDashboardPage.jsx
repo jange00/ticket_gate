@@ -8,11 +8,11 @@ import Button from '../../components/ui/Button';
 import Loading from '../../components/ui/Loading';
 import Badge from '../../components/ui/Badge';
 import { motion } from 'framer-motion';
-import { 
-  FiCalendar, 
-  FiDollarSign, 
-  FiTag, 
-  FiTrendingUp, 
+import {
+  FiCalendar,
+  FiCreditCard,
+  FiTag,
+  FiTrendingUp,
   FiPlus,
   FiArrowRight,
   FiEye
@@ -37,7 +37,7 @@ const OrganizerDashboardPage = () => {
   });
 
   const stats = statsData?.data?.data || statsData?.data || {};
-  
+
   // Ensure events is always an array, handling various API response structures
   let events = [];
   if (eventsData) {
@@ -53,35 +53,23 @@ const OrganizerDashboardPage = () => {
     }
   }
 
-  const totalEvents = events.length;
-  const publishedEvents = events.filter(e => e.status === 'published' || e.status === 'PUBLISHED').length;
-  const totalTicketsSold = stats.totalTicketsSold || stats.ticketsSold || 0;
+  const totalEvents = stats.totalEvents || events.length;
+  const publishedEvents = stats.publishedEvents || events.filter(e => e.status === 'published' || e.status === 'PUBLISHED').length;
+  const totalTicketsSold = stats.totalTicketsSold || 0;
   const totalRevenue = stats.totalRevenue || 0;
 
   // Prepare revenue chart data (last 6 months)
-  // Use actual revenue data from stats if available, otherwise use distributed total revenue
   const revenueData = Array.from({ length: 6 }, (_, i) => {
     const date = subMonths(new Date(), 5 - i);
-    // If we have revenueByMonth in stats, use it; otherwise distribute total revenue
-    const monthKey = format(date, 'MMM').toLowerCase();
-    let revenue = 0;
-    
-    if (stats.revenueByMonth && Array.isArray(stats.revenueByMonth)) {
-      const monthData = stats.revenueByMonth.find(m => 
-        format(new Date(m.month || m.date || m.name), 'MMM').toLowerCase() === monthKey
-      );
-      revenue = monthData?.revenue || monthData?.amount || 0;
-    } else if (totalRevenue > 0) {
-      // Distribute total revenue across months (slightly random distribution)
-      revenue = Math.floor((totalRevenue / 6) * (0.7 + Math.random() * 0.6));
-    }
-    
+    const monthKey = format(date, 'yyyy-MM');
+    const monthData = stats.revenueByMonth?.find(m => m.month === monthKey);
+
     return {
       name: format(date, 'MMM'),
-      revenue: revenue,
+      revenue: monthData?.revenue || 0,
     };
   });
-  
+
 
   if (statsLoading || eventsLoading) {
     return <Loading fullScreen />;
@@ -109,77 +97,77 @@ const OrganizerDashboardPage = () => {
     {
       label: 'Total Revenue',
       value: formatCurrency(totalRevenue),
-      icon: FiDollarSign,
+      icon: FiCreditCard,
       color: 'bg-orange-500',
     },
   ];
 
   return (
     <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Organizer Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Manage your events and track performance
-          </p>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Organizer Dashboard
+        </h1>
+        <p className="text-gray-600">
+          Manage your events and track performance
+        </p>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statCards.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">
-                        {stat.label}
-                      </p>
-                      <p className="text-3xl font-bold text-gray-900">
-                        {stat.value}
-                      </p>
-                    </div>
-                    <div className={`${stat.color} p-3 rounded-lg`}>
-                      <Icon className="h-6 w-6 text-white" />
-                    </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {statCards.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">
+                      {stat.label}
+                    </p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {stat.value}
+                    </p>
                   </div>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+                  <div className={`${stat.color} p-3 rounded-lg`}>
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
 
-        <div className="mb-8">
-          {/* Revenue Chart */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">Revenue Overview</h2>
-                  <p className="text-sm text-gray-600">Last 6 Months Performance</p>
-                </div>
-                <div className="px-4 py-2 bg-orange-500 rounded-lg">
-                  <p className="text-sm font-semibold text-gray-900">Total: {formatCurrency(totalRevenue)}</p>
-                </div>
+      <div className="mb-8">
+        {/* Revenue Chart */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">Revenue Overview</h2>
+                <p className="text-sm text-gray-600">Last 6 Months Performance</p>
               </div>
-              <div className="rounded-lg p-4 bg-gray-50">
-                <RevenueChart data={revenueData} />
+              <div className="px-4 py-2 bg-orange-500 rounded-lg">
+                <p className="text-sm font-semibold text-gray-900">Total: {formatCurrency(totalRevenue)}</p>
               </div>
-            </Card>
-          </motion.div>
-        </div>
+            </div>
+            <div className="rounded-lg p-4 bg-gray-50">
+              <RevenueChart data={revenueData} />
+            </div>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 };

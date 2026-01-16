@@ -365,13 +365,118 @@ const send2FAOTPEmail = async (email, name, otp) => {
   return sendEmail(email, subject, html, null, config.EMAIL_FROM);
 };
 
+/**
+ * Send refund approved email
+ */
+const sendRefundApprovedEmail = async (email, name, amount, eventTitle, refundId) => {
+  const subject = `Refund Approved - ${eventTitle}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f7f9; margin: 0; padding: 0; }
+        .wrapper { background-color: #f4f7f9; padding: 20px 0; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .header { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; letter-spacing: 1px; font-weight: bold; }
+        .content { padding: 40px; text-align: center; }
+        .amount-box { background-color: #e8f5e9; border: 2px dashed #4CAF50; border-radius: 12px; padding: 25px; margin: 30px 0; display: inline-block; }
+        .amount { font-size: 32px; font-weight: 800; color: #2E7D32; }
+        .refund-id { font-family: monospace; color: #666; font-size: 14px; margin-top: 10px; }
+        .footer { text-align: center; padding: 25px; font-size: 13px; color: #888; background-color: #fafbfc; border-top: 1px solid #f1f3f5; }
+      </style>
+    </head>
+    <body>
+      <div class="wrapper">
+        <div class="container">
+          <div class="header">
+            <h1>Refund Approved</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${name},</p>
+            <p>Good news! Your refund request for <strong>${eventTitle}</strong> has been approved.</p>
+            
+            <div class="amount-box">
+              <div class="amount">NPR ${amount}</div>
+              <div class="refund-id">Ref: ${refundId}</div>
+            </div>
+            
+            <p>The amount will be credited back to your original payment method within 5-7 business days.</p>
+          </div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} TicketGate. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  return sendEmail(email, subject, html);
+};
+
+/**
+ * Send refund rejected email
+ */
+const sendRefundRejectedEmail = async (email, name, eventTitle, reason) => {
+  const subject = `Update on your Refund Request - ${eventTitle}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f7f9; margin: 0; padding: 0; }
+        .wrapper { background-color: #f4f7f9; padding: 20px 0; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .header { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; padding: 40px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; letter-spacing: 1px; font-weight: bold; }
+        .content { padding: 40px; text-align: center; }
+        .reason-box { background-color: #ffebee; border-left: 4px solid #f44336; padding: 20px; margin: 30px 0; text-align: left; }
+        .footer { text-align: center; padding: 25px; font-size: 13px; color: #888; background-color: #fafbfc; border-top: 1px solid #f1f3f5; }
+      </style>
+    </head>
+    <body>
+      <div class="wrapper">
+        <div class="container">
+          <div class="header">
+            <h1>Refund Request Update</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${name},</p>
+            <p>We have reviewed your refund request for <strong>${eventTitle}</strong>.</p>
+            <p>After careful consideration, we are unable to approve your request at this time.</p>
+            
+            <div class="reason-box">
+              <strong>Reason:</strong><br>
+              ${reason}
+            </div>
+            
+            <p>If you have any questions or believe this decision was made in error, please contact our support team.</p>
+          </div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} TicketGate. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  return sendEmail(email, subject, html);
+};
+
 module.exports = {
   sendEmail,
   sendWelcomeEmail,
   sendPasswordResetEmail,
   sendTicketConfirmationEmail,
   sendVerificationOTPEmail,
-  send2FAOTPEmail
+  send2FAOTPEmail,
+  sendRefundApprovedEmail,
+  sendRefundRejectedEmail
 };
 
 

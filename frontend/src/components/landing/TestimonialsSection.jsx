@@ -5,25 +5,25 @@ import { FiStar } from 'react-icons/fi';
 const TestimonialsSection = () => {
   const testimonials = [
     {
-      name: 'Sarah Johnson',
+      name: 'Sushant Mahato',
       role: 'Event Organizer',
       content: 'TicketGate made organizing my music festival so much easier. The analytics are incredible!',
       rating: 5,
-      avatar: 'SJ',
+      avatar: 'SM',
     },
     {
-      name: 'Michael Chen',
+      name: 'Roshani Yadav',
       role: 'Conference Host',
       content: 'Best ticketing platform I\'ve used. The QR code check-in feature saved us hours.',
       rating: 5,
-      avatar: 'MC',
+      avatar: 'RY',
     },
     {
-      name: 'Emily Rodriguez',
+      name: 'Vijay Mahato',
       role: 'Workshop Creator',
       content: 'Simple, secure, and professional. My attendees love the seamless experience.',
       rating: 5,
-      avatar: 'ER',
+      avatar: 'VM',
     },
   ];
 

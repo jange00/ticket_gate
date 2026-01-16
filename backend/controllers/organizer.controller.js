@@ -6,6 +6,7 @@ const Refund = require('../models/Refund');
 const { parsePagination, buildPaginationMeta } = require('../utils/helpers');
 const { HTTP_STATUS, ERROR_MESSAGES, PURCHASE_STATUS, REFUND_STATUS } = require('../utils/constants');
 const { AppError } = require('../middleware/errorHandler.middleware');
+const logger = require('../services/logging.service');
 
 /**
  * Get organizer statistics
@@ -13,38 +14,83 @@ const { AppError } = require('../middleware/errorHandler.middleware');
 const getOrganizerStatistics = async (req, res, next) => {
   try {
     const userId = req.user.userId;
+    const { dateRange = '6months' } = req.query;
+    logger.info(`[STATS_DEBUG] Start for user: ${userId}, range: ${dateRange}`);
+
+    // Calculate date filter
+    let dateFilter = {};
+    const now = new Date();
+    if (dateRange === '1month') {
+      dateFilter = { $gte: subMonths(now, 1) };
+    } else if (dateRange === '3months') {
+      dateFilter = { $gte: subMonths(now, 3) };
+    } else if (dateRange === '6months') {
+      dateFilter = { $gte: subMonths(now, 6) };
+    } else if (dateRange === '1year') {
+      dateFilter = { $gte: subMonths(now, 12) };
+    }
+    logger.info(`[STATS_DEBUG] Date filter: ${JSON.stringify(dateFilter)}`);
 
     // Get organizer's events
     const events = await Event.find({ organizerId: userId }).lean();
+    logger.info(`[STATS_DEBUG] Found ${events.length} events for organizer ${userId}`);
     const eventIds = events.map(e => e._id);
 
     // Get statistics
+    logger.info(`[STATS_DEBUG] Running aggregations for ${eventIds.length} events...`);
     const [
       totalEvents,
       publishedEvents,
-      totalRevenue,
-      totalTicketsSold,
+      revenueStats,
+      ticketStats,
       totalPurchases,
-      pendingRefunds
+      pendingRefunds,
+      topEvents
     ] = await Promise.all([
       Event.countDocuments({ organizerId: userId }),
       Event.countDocuments({ organizerId: userId, status: 'published' }),
       Purchase.aggregate([
-        { $match: { eventId: { $in: eventIds }, status: PURCHASE_STATUS.PAID } },
+        { $match: { eventId: { $in: eventIds }, status: PURCHASE_STATUS.PAID, createdAt: dateFilter } },
         { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-      ]),
+      ]).then(res => { logger.info(`[STATS_DEBUG] RevenueStats: ${JSON.stringify(res)}`); return res; }),
+      Purchase.aggregate([
+        { $match: { eventId: { $in: eventIds }, status: PURCHASE_STATUS.PAID, createdAt: dateFilter } },
+        { $unwind: '$tickets' },
+        { $group: { _id: null, total: { $sum: '$tickets.quantity' } } }
+      ]).then(res => { logger.info(`[STATS_DEBUG] TicketStats: ${JSON.stringify(res)}`); return res; }),
+      Purchase.countDocuments({ eventId: { $in: eventIds }, status: PURCHASE_STATUS.PAID, createdAt: dateFilter }),
+      Refund.countDocuments({ eventId: { $in: eventIds }, status: REFUND_STATUS.PENDING }),
       Purchase.aggregate([
         { $match: { eventId: { $in: eventIds }, status: PURCHASE_STATUS.PAID } },
-        { $group: { _id: null, total: { $sum: { $sum: '$tickets.quantity' } } } }
-      ]),
-      Purchase.countDocuments({ eventId: { $in: eventIds }, status: PURCHASE_STATUS.PAID }),
-      Refund.countDocuments({ eventId: { $in: eventIds }, status: REFUND_STATUS.PENDING })
+        { $group: { _id: '$eventId', revenue: { $sum: '$totalAmount' }, ticketsSold: { $sum: { $sum: '$tickets.quantity' } } } },
+        { $sort: { revenue: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'events',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'event'
+          }
+        },
+        { $unwind: '$event' },
+        {
+          $project: {
+            title: '$event.title',
+            date: '$event.startDate',
+            status: '$event.status',
+            revenue: 1,
+            ticketsSold: 1
+          }
+        }
+      ]).then(res => { logger.info(`[STATS_DEBUG] TopEvents: ${JSON.stringify(res)}`); return res; })
     ]);
 
-    // Revenue by month (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const totalRevenue = revenueStats[0]?.total || 0;
+    const totalTicketsSold = ticketStats[0]?.total || 0;
 
+    // Revenue by month (last 6 months)
+    const sixMonthsAgo = subMonths(new Date(), 6);
     const revenueByMonth = await Purchase.aggregate([
       {
         $match: {
@@ -59,39 +105,42 @@ const getOrganizerStatistics = async (req, res, next) => {
             year: { $year: '$createdAt' },
             month: { $month: '$createdAt' }
           },
-          revenue: { $sum: '$totalAmount' },
-          count: { $sum: 1 }
+          revenue: { $sum: '$totalAmount' }
         }
       },
       { $sort: { '_id.year': 1, '_id.month': 1 } }
     ]);
+    logger.info(`[STATS_DEBUG] RevenueByMonth: ${JSON.stringify(revenueByMonth)}`);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
-        events: {
-          total: totalEvents,
-          published: publishedEvents
-        },
-        revenue: {
-          total: totalRevenue[0]?.total || 0,
-          byMonth: revenueByMonth
-        },
-        tickets: {
-          sold: totalTicketsSold[0]?.total || 0
-        },
-        purchases: {
-          total: totalPurchases
-        },
-        refunds: {
-          pending: pendingRefunds
-        }
+        totalEvents,
+        publishedEvents,
+        totalRevenue,
+        totalTicketsSold,
+        totalPurchases,
+        pendingRefunds,
+        averageRevenuePerEvent: totalEvents > 0 ? totalRevenue / totalEvents : 0,
+        revenueByMonth: revenueByMonth.map(m => ({
+          month: `${m._id.year}-${String(m._id.month).padStart(2, '0')}`,
+          revenue: m.revenue
+        })),
+        topEvents
       }
     });
   } catch (error) {
+    logger.error(`[STATS_DEBUG] Error: ${error.message}`, { stack: error.stack });
     next(error);
   }
 };
+
+// Helper function for subMonths (to avoid adding date-fns to backend if not there)
+function subMonths(date, months) {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() - months);
+  return result;
+}
 
 /**
  * Get event sales analytics

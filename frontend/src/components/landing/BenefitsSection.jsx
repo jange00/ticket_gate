@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
 import Card from '../ui/Card';
-import { 
-  FiDollarSign, 
-  FiCreditCard, 
-  FiEdit, 
-  FiPhone, 
-  FiMail, 
-  FiCode 
+import {
+
+  FiCreditCard,
+  FiEdit,
+  FiPhone,
+  FiMail,
+  FiCode
 } from 'react-icons/fi';
 
 const BenefitsSection = () => {
@@ -14,7 +14,7 @@ const BenefitsSection = () => {
     {
       title: 'No Hidden Fees',
       description: 'Transparent pricing with no surprise charges. Keep more of your revenue.',
-      icon: FiDollarSign,
+      icon: FiCreditCard,
       color: 'bg-green-500'
     },
     {

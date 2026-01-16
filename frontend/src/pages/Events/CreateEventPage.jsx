@@ -11,13 +11,13 @@ import Input from '../../components/ui/Input';
 import FileUpload from '../../components/forms/FileUpload';
 import Loading from '../../components/ui/Loading';
 import { motion } from 'framer-motion';
-import { 
-  FiCalendar, 
-  FiMapPin, 
-  FiDollarSign, 
-  FiTag, 
-  FiImage, 
-  FiPlus, 
+import {
+  FiCalendar,
+  FiMapPin,
+
+  FiTag,
+  FiImage,
+  FiPlus,
   FiX,
   FiSave,
   FiEye,
@@ -31,11 +31,11 @@ const eventSchema = Yup.object().shape({
     .required('Event title is required')
     .max(200, 'Title cannot exceed 200 characters')
     .trim(),
-  
+
   description: Yup.string()
     .required('Event description is required')
     .trim(),
-  
+
   category: Yup.string()
     .required('Category is required')
     .oneOf([
@@ -50,7 +50,7 @@ const eventSchema = Yup.object().shape({
       'Entertainment',
       'Other'
     ], 'Please select a valid category'),
-  
+
   startDate: Yup.date()
     .nullable()
     .transform((value, originalValue) => {
@@ -60,7 +60,7 @@ const eventSchema = Yup.object().shape({
     })
     .required('Start date is required')
     .typeError('Please enter a valid start date'),
-  
+
   endDate: Yup.date()
     .nullable()
     .transform((value, originalValue) => {
@@ -76,7 +76,7 @@ const eventSchema = Yup.object().shape({
       }
       return schema;
     }),
-  
+
   venue: Yup.object().shape({
     name: Yup.string()
       .required('Venue name is required')
@@ -110,15 +110,15 @@ const eventSchema = Yup.object().shape({
         .typeError('Longitude must be a number')
     }).nullable()
   }),
-  
+
   imageUrl: Yup.string()
     .url('Image URL must be a valid URL')
     .nullable(),
-  
+
   bannerUrl: Yup.string()
     .url('Banner URL must be a valid URL')
     .nullable(),
-  
+
   ticketTypes: Yup.array()
     .of(
       Yup.object().shape({
@@ -144,7 +144,7 @@ const eventSchema = Yup.object().shape({
       })
     )
     .min(1, 'At least one ticket type is required')
-    .test('unique-names', 'Ticket type names must be unique', function(ticketTypes) {
+    .test('unique-names', 'Ticket type names must be unique', function (ticketTypes) {
       if (!ticketTypes) return true;
       const names = ticketTypes.map(tt => tt.name?.toLowerCase().trim()).filter(Boolean);
       return new Set(names).size === names.length;
@@ -219,10 +219,10 @@ const CreateEventPage = () => {
           name: data.venue.name?.trim(),
           address: data.venue.address?.trim(),
           city: data.venue.city?.trim(),
-          ...(data.venue.coordinates?.latitude && 
-              data.venue.coordinates?.longitude && 
-              !isNaN(parseFloat(data.venue.coordinates.latitude)) &&
-              !isNaN(parseFloat(data.venue.coordinates.longitude)) && {
+          ...(data.venue.coordinates?.latitude &&
+            data.venue.coordinates?.longitude &&
+            !isNaN(parseFloat(data.venue.coordinates.latitude)) &&
+            !isNaN(parseFloat(data.venue.coordinates.longitude)) && {
             coordinates: {
               latitude: parseFloat(data.venue.coordinates.latitude),
               longitude: parseFloat(data.venue.coordinates.longitude),
@@ -237,7 +237,7 @@ const CreateEventPage = () => {
 
       // Create the event
       const eventResponse = await eventsApi.create(payload);
-      
+
       // Extract event ID from response - handle various response structures
       let eventId = null;
       const responseData = eventResponse?.data;
@@ -255,12 +255,12 @@ const CreateEventPage = () => {
           eventId = responseData._id || responseData.id;
         }
       }
-      
+
       // Convert eventId to string if it's an object
       if (eventId && typeof eventId === 'object' && eventId.toString) {
         eventId = eventId.toString();
       }
-      
+
       // If status is PUBLISHED and event was created as DRAFT, also call publish API
       // (Backend always creates as DRAFT, must publish separately)
       if (data.status === EVENT_STATUS.PUBLISHED) {
@@ -699,7 +699,7 @@ const CreateEventPage = () => {
                                   placeholder="e.g., General Admission"
                                   error={
                                     errors.ticketTypes?.[index]?.name &&
-                                    touched.ticketTypes?.[index]?.name
+                                      touched.ticketTypes?.[index]?.name
                                       ? errors.ticketTypes[index].name
                                       : null
                                   }
@@ -719,7 +719,7 @@ const CreateEventPage = () => {
                                   placeholder="0.00"
                                   error={
                                     errors.ticketTypes?.[index]?.price &&
-                                    touched.ticketTypes?.[index]?.price
+                                      touched.ticketTypes?.[index]?.price
                                       ? errors.ticketTypes[index].price
                                       : null
                                   }
@@ -738,7 +738,7 @@ const CreateEventPage = () => {
                                   placeholder="100"
                                   error={
                                     errors.ticketTypes?.[index]?.quantityAvailable &&
-                                    touched.ticketTypes?.[index]?.quantityAvailable
+                                      touched.ticketTypes?.[index]?.quantityAvailable
                                       ? errors.ticketTypes[index].quantityAvailable
                                       : null
                                   }
@@ -757,7 +757,7 @@ const CreateEventPage = () => {
                                   placeholder="4"
                                   error={
                                     errors.ticketTypes?.[index]?.maxPerPurchase &&
-                                    touched.ticketTypes?.[index]?.maxPerPurchase
+                                      touched.ticketTypes?.[index]?.maxPerPurchase
                                       ? errors.ticketTypes[index].maxPerPurchase
                                       : null
                                   }

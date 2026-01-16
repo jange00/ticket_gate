@@ -164,6 +164,15 @@ const processRefundRequest = async (req, res, next) => {
       throw new AppError(ERROR_MESSAGES.FORBIDDEN, HTTP_STATUS.FORBIDDEN);
     }
 
+    // Get user details for email
+    const User = require('../models/User');
+    const user = await User.findById(refund.userId);
+
+    const emailService = require('../services/email.service');
+    const userName = user ? user.firstName : 'User';
+    const userEmail = user ? user.email : null;
+    const eventTitle = event.title;
+
     if (action === 'approve') {
       // Process refund
       const refundResult = await processRefund({
@@ -193,6 +202,21 @@ const processRefundRequest = async (req, res, next) => {
         }
       }
 
+      // Send approval email
+      if (userEmail) {
+        try {
+          await emailService.sendRefundApprovedEmail(
+            userEmail, 
+            userName, 
+            refund.refundAmount, 
+            eventTitle, 
+            refund.refundId
+          );
+        } catch (emailError) {
+          logger.error('Failed to send refund approval email:', emailError);
+        }
+      }
+
       // Log activity
       await ActivityLog.create({
         userId: refund.userId,
@@ -218,6 +242,20 @@ const processRefundRequest = async (req, res, next) => {
       refund.processedAt = new Date();
       refund.rejectionReason = rejectionReason;
       await refund.save();
+
+      // Send rejection email
+      if (userEmail) {
+        try {
+          await emailService.sendRefundRejectedEmail(
+            userEmail, 
+            userName, 
+            eventTitle, 
+            rejectionReason
+          );
+        } catch (emailError) {
+          logger.error('Failed to send refund rejection email:', emailError);
+        }
+      }
 
       res.status(HTTP_STATUS.OK).json({
         success: true,

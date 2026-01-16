@@ -113,6 +113,10 @@ const processRefund = async ({ transactionId, amount, refundId }) => {
     // Since we don't have the specific endpoint in env, we simulate success
     // or log it.
     
+    logger.warn('*** SIMULATING ESEWA REFUND ***');
+    logger.warn(`Would send request to eSewa to refund ${amount} for transaction ${transactionId}`);
+    logger.warn('*** END SIMULATION ***');
+    
     // Assuming success for internal tracking
     return {
       success: true,

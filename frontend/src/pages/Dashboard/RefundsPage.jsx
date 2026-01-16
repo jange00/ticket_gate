@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { motion } from 'framer-motion';
-import { FiDollarSign, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiCreditCard, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import Table from '../../components/ui/Table';
@@ -21,8 +21,8 @@ const RefundsPage = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['myRefunds', filter],
-    queryFn: () => refundsApi.getMyRefunds({ 
-      status: filter !== 'all' ? filter : undefined 
+    queryFn: () => refundsApi.getMyRefunds({
+      status: filter !== 'all' ? filter : undefined
     }),
   });
 
@@ -122,11 +122,11 @@ const RefundsPage = () => {
           >
             <Card className="p-12 text-center">
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FiDollarSign className="w-10 h-10 text-gray-400" />
+                <FiCreditCard className="w-10 h-10 text-gray-400" />
               </div>
               <p className="text-gray-600 mb-4 text-lg">
-                {filter === 'all' 
-                  ? "You don't have any refund requests yet" 
+                {filter === 'all'
+                  ? "You don't have any refund requests yet"
                   : `No ${filter} refunds found`
                 }
               </p>
@@ -170,12 +170,12 @@ const RefundsPage = () => {
                       </p>
                     </Table.Cell>
                     <Table.Cell>
-                      <Badge 
+                      <Badge
                         variant={
                           refund.status === 'approved' ? 'success' :
-                          refund.status === 'rejected' ? 'danger' :
-                          refund.status === 'processed' ? 'default' :
-                          'warning'
+                            refund.status === 'rejected' ? 'danger' :
+                              refund.status === 'processed' ? 'default' :
+                                'warning'
                         }
                       >
                         {refund.status}
@@ -234,12 +234,12 @@ const RefundsPage = () => {
               <div>
                 <label className="text-sm font-medium text-gray-700">Status</label>
                 <div className="mt-1">
-                  <Badge 
+                  <Badge
                     variant={
                       selectedRefund.status === 'approved' ? 'success' :
-                      selectedRefund.status === 'rejected' ? 'danger' :
-                      selectedRefund.status === 'processed' ? 'default' :
-                      'warning'
+                        selectedRefund.status === 'rejected' ? 'danger' :
+                          selectedRefund.status === 'processed' ? 'default' :
+                            'warning'
                     }
                   >
                     {selectedRefund.status}
