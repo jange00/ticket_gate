@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ticketsApi } from '../../api/tickets.api';
 import Card from '../../components/ui/Card';
@@ -6,6 +6,8 @@ import Loading from '../../components/ui/Loading';
 import Badge from '../../components/ui/Badge';
 import { formatDateTime } from '../../utils/formatters';
 import { QRCodeSVG } from 'qrcode.react';
+import { motion } from 'framer-motion';
+import { FiCalendar, FiMapPin, FiDownload } from 'react-icons/fi';
 
 const TicketDetailPage = () => {
   const { id } = useParams();
