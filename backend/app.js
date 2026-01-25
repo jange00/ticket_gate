@@ -47,9 +47,12 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // In development, allow localhost on any port
+    // In development, allow localhost and local network IPs
     if (config.NODE_ENV === 'development') {
-      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      const isLocalhost = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+      const isLocalIP = /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(origin);
+      
+      if (isLocalhost || isLocalIP) {
         return callback(null, true);
       }
     }

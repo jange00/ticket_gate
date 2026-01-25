@@ -24,10 +24,11 @@ connectRedis().catch((err) => {
 // Start server
 const PORT = config.PORT || 3000;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Server running in ${config.NODE_ENV} mode on port ${PORT}`);
-  logger.info(`Health check: http://localhost:${PORT}/health`);
-  logger.info(`API endpoint: http://localhost:${PORT}/api`);
+  logger.info(`Local access: http://localhost:${PORT}/health`);
+  logger.info(`Network access: http://169.254.223.180:${PORT}/health`);
+  logger.info(`API endpoint: http://169.254.223.180:${PORT}/api`);
 });
 
 // Handle unhandled promise rejections

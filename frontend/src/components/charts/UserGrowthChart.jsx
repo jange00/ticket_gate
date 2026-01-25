@@ -17,29 +17,27 @@ const UserGrowthChart = ({ data = [], className = '' }) => {
       </div>
     );
   }
-  
+
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-          <XAxis 
-            dataKey="name" 
+          <XAxis
+            dataKey="name"
             stroke="#6b7280"
-            className="dark:stroke-gray-400"
             style={{ fontSize: '12px' }}
             tick={{ fill: '#6b7280' }}
-            className="dark:[&_text]:fill-gray-400"
+            className="dark:stroke-gray-400 dark:[&_text]:fill-gray-400"
           />
-          <YAxis 
+          <YAxis
             stroke="#6b7280"
-            className="dark:stroke-gray-400"
             style={{ fontSize: '12px' }}
             tick={{ fill: '#6b7280' }}
-            className="dark:[&_text]:fill-gray-400"
+            className="dark:stroke-gray-400 dark:[&_text]:fill-gray-400"
           />
-          <Tooltip 
-            contentStyle={{ 
+          <Tooltip
+            contentStyle={{
               backgroundColor: '#fff',
               color: '#1f2937',
               border: '1px solid #e5e7eb',
@@ -48,7 +46,7 @@ const UserGrowthChart = ({ data = [], className = '' }) => {
             }}
             className="dark:!bg-gray-800 dark:!border-gray-700 dark:!text-white"
           />
-          <Legend 
+          <Legend
             wrapperStyle={{ color: '#6b7280' }}
             className="dark:[&_text]:fill-gray-400"
           />
